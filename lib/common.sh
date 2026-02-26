@@ -27,12 +27,28 @@ json_get() {
   echo "$1" | sed 's/.*"'"$2"'":"\([^"]*\)".*/\1/'
 }
 
+# Extract a JSON string field, returning "" if field is missing
+json_get_or_empty() {
+  local val
+  val=$(echo "$1" | grep -o "\"$2\":\"[^\"]*\"" | sed 's/"'"$2"'"://;s/"//g')
+  echo "$val"
+}
+
 # Set/replace state field in a JSON line
 json_set_state() {
   local line="$1" state="$2"
   local clean
   clean=$(echo "$line" | sed 's/ *,\? *"state":"[^"]*"//g')
   echo "${clean%\}}, \"state\":\"$state\"}"
+}
+
+# Resolve output pattern: expand %A→jobid, %a→*, %j→jobid, then glob
+resolve_output_pattern() {
+  local pattern="$1" jobid="$2"
+  pattern="${pattern//%A/$jobid}"
+  pattern="${pattern//%j/$jobid}"
+  pattern="${pattern//%a/*}"
+  echo "$pattern"
 }
 
 # Resolve the active job ID (most recent non-cancelled from history)
