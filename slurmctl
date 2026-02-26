@@ -1,0 +1,44 @@
+#!/bin/bash
+set -euo pipefail
+
+# Resolve root directory (where this script lives)
+SLURMCTL_ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+export SLURMCTL_ROOT
+
+# Source common library
+source "$SLURMCTL_ROOT/lib/common.sh"
+source "$SLURMCTL_ROOT/lib/sacct.sh"
+
+# Parse global flags before subcommand
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --job|-j)
+      export SLURMCTL_JOBID="$2"
+      shift 2
+      ;;
+    --help|-h)
+      set -- help
+      break
+      ;;
+    -*)
+      printf "${RED}Unknown flag: %s${RESET}\n" "$1" >&2
+      exit 1
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+# Subcommand dispatch
+cmd="${1:-help}"
+shift || true
+
+libexec="$SLURMCTL_ROOT/libexec/slurmctl/${cmd}.sh"
+if [ ! -f "$libexec" ]; then
+  printf "${RED}Unknown command: %s${RESET}\n" "$cmd" >&2
+  printf "Run ${CYAN}slurmctl help${RESET} for usage.\n" >&2
+  exit 1
+fi
+
+exec bash "$libexec" "$@"
