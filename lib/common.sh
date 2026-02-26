@@ -14,9 +14,13 @@ else
   RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' RESET=''
 fi
 
-# Config
-SLURM_PREFIX="${HOME}/.slurm"
-HIST_FILE="${SLURMCTL_ROOT:-.}/.slurm.log"
+# Config — single directory for all slurm output, error, and log files
+SLURMCTL_LOG_DIR="${SLURMCTL_LOG_DIR:-$HOME/.slurm}"
+mkdir -p "$SLURMCTL_LOG_DIR"
+
+# Per-project history file: encode project path into filename
+_project_key=$(echo "${SLURMCTL_PROJECT_ROOT:-$PWD}" | tr '/' '-')
+HIST_FILE="${SLURMCTL_LOG_DIR}/${_project_key}.slurm.log"
 
 # Extract a JSON string field: json_get '{"k":"v"}' k → v
 json_get() {

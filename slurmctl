@@ -1,13 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
-# Resolve root directory (where this script lives)
-SLURMCTL_ROOT="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-export SLURMCTL_ROOT
+# Resolve tool directory (where this script lives, for lib/ and libexec/)
+SLURMCTL_SRC_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+export SLURMCTL_SRC_DIR
+
+# Resolve user's project directory
+SLURMCTL_PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+export SLURMCTL_PROJECT_ROOT
 
 # Source common library
-source "$SLURMCTL_ROOT/lib/common.sh"
-source "$SLURMCTL_ROOT/lib/sacct.sh"
+source "$SLURMCTL_SRC_DIR/lib/common.sh"
+source "$SLURMCTL_SRC_DIR/lib/sacct.sh"
 
 # Parse global flags before subcommand
 while [ $# -gt 0 ]; do
@@ -34,7 +38,7 @@ done
 cmd="${1:-help}"
 shift || true
 
-libexec="$SLURMCTL_ROOT/libexec/slurmctl/${cmd}.sh"
+libexec="$SLURMCTL_SRC_DIR/libexec/slurmctl/${cmd}.sh"
 if [ ! -f "$libexec" ]; then
   printf "${RED}Unknown command: %s${RESET}\n" "$cmd" >&2
   printf "Run ${CYAN}slurmctl help${RESET} for usage.\n" >&2

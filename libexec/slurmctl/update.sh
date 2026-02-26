@@ -1,5 +1,5 @@
 #!/bin/bash
-# update — refresh job states from sacct into .slurm.log
+# update — refresh job states from sacct into history
 
 if [ ! -f "$HIST_FILE" ]; then
   printf "${YELLOW}No history${RESET}\n"
@@ -9,7 +9,8 @@ fi
 while IFS= read -r line; do
   old_state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
 
-  if [ "$old_state" = "cancelled" ]; then
+  # Preserve terminal states
+  if [ "$old_state" = "cancelled" ] || [ "$old_state" = "resubmitted" ]; then
     echo "$line"
     continue
   fi

@@ -1,7 +1,7 @@
 #!/bin/bash
 # help — show usage
 
-SCRIPTS=$(cd "$SLURMCTL_ROOT" && ls *.slurm 2>/dev/null | sed 's/\.slurm$//' | tr '\n' ' ')
+SCRIPTS=$(cd "$SLURMCTL_PROJECT_ROOT" && ls *.slurm 2>/dev/null | sed 's/\.slurm$//' | tr '\n' ' ')
 
 cat <<EOF
 
