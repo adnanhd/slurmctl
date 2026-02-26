@@ -20,5 +20,8 @@ if [ -z "$SCRIPT" ]; then
   exit 1
 fi
 
+# Mark old entry as resubmitted
+sed -i "/\"job_id\":\"$JOBID\"/{s/ *,\? *\"state\":\"[^\"]*\"//g;s/}$/, \"state\":\"resubmitted\"}/;}" "$HIST_FILE"
+
 printf "${CYAN}Resubmitting${RESET} %s ${YELLOW}--array=%s${RESET}\n" "$SCRIPT" "$FAILED"
-exec bash "$SLURMCTL_ROOT/libexec/slurmctl/submit.sh" "$SCRIPT" --array="$FAILED"
+bash "$SLURMCTL_SRC_DIR/libexec/slurmctl/submit.sh" "$SCRIPT" --array="$FAILED"

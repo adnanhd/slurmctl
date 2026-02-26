@@ -51,7 +51,7 @@ resolve_output_pattern() {
   echo "$pattern"
 }
 
-# Resolve the active job ID (most recent non-cancelled from history)
+# Resolve the active job ID (most recent non-cancelled, non-resubmitted from history)
 resolve_jobid() {
   if [ -n "${SLURMCTL_JOBID:-}" ]; then
     echo "$SLURMCTL_JOBID"
@@ -60,7 +60,9 @@ resolve_jobid() {
   if [ ! -f "$HIST_FILE" ]; then
     return 1
   fi
-  grep -v '"state":"cancelled"' "$HIST_FILE" 2>/dev/null | tail -1 | sed 's/.*"job_id":"\([^"]*\)".*/\1/'
+  grep -v '"state":"cancelled"' "$HIST_FILE" 2>/dev/null \
+    | grep -v '"state":"resubmitted"' \
+    | tail -1 | sed 's/.*"job_id":"\([^"]*\)".*/\1/'
 }
 
 # Require a job ID or exit
@@ -78,11 +80,11 @@ require_jobid() {
 color_state() {
   local state="$1"
   case "$state" in
-    cancelled)        printf "${RED}%s${RESET}" "$state" ;;
-    COMPLETED)        printf "${GREEN}%s${RESET}" "$state" ;;
-    RUNNING)          printf "${YELLOW}%s${RESET}" "$state" ;;
-    PENDING)          printf "${BLUE}%s${RESET}" "$state" ;;
-    FAILED*|TIMEOUT*) printf "${RED}%s${RESET}" "$state" ;;
-    *)                printf "${CYAN}%s${RESET}" "$state" ;;
+    cancelled|resubmitted) printf "${RED}%s${RESET}" "$state" ;;
+    COMPLETED)             printf "${GREEN}%s${RESET}" "$state" ;;
+    RUNNING)               printf "${YELLOW}%s${RESET}" "$state" ;;
+    PENDING)               printf "${BLUE}%s${RESET}" "$state" ;;
+    FAILED*|TIMEOUT*)      printf "${RED}%s${RESET}" "$state" ;;
+    *)                     printf "${CYAN}%s${RESET}" "$state" ;;
   esac
 }

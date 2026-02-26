@@ -1,5 +1,39 @@
 #!/bin/bash
-# cancelall — cancel all your jobs
+# cancelall — cancel all active project jobs
 
-printf "${RED}Cancelling all your jobs${RESET}\n"
-scancel -u "$USER"
+if [ ! -f "$HIST_FILE" ]; then
+  printf "${YELLOW}No history${RESET}\n"
+  exit 0
+fi
+
+count=0
+while IFS= read -r line; do
+  state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
+
+  # Skip terminal states
+  case "$state" in
+    cancelled|COMPLETED|FAILED*|TIMEOUT*|resubmitted) continue ;;
+  esac
+
+  jid=$(json_get "$line" job_id)
+  printf "${RED}Cancelling${RESET} job %s\n" "$jid"
+  scancel "$jid" 2>/dev/null
+  ((count++))
+done < "$HIST_FILE"
+
+# Update states in history file
+if [ "$count" -gt 0 ]; then
+  while IFS= read -r line; do
+    state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
+    case "$state" in
+      cancelled|COMPLETED|FAILED*|TIMEOUT*|resubmitted)
+        echo "$line"
+        ;;
+      *)
+        json_set_state "$line" "cancelled"
+        ;;
+    esac
+  done < "$HIST_FILE" > "${HIST_FILE}.tmp" && mv "${HIST_FILE}.tmp" "$HIST_FILE"
+fi
+
+printf "${GREEN}Cancelled${RESET} %d project job(s)\n" "$count"

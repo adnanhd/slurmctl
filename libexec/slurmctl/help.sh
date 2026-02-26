@@ -21,6 +21,7 @@ ${YELLOW}Array Jobs:${RESET}
   slurmctl ${GREEN}running${RESET}                 Count running/pending/failed
   slurmctl ${GREEN}failed${RESET}                  List failed array task IDs
   slurmctl ${GREEN}resubmit${RESET}                Resubmit failed tasks
+  slurmctl ${GREEN}resubmitall${RESET}             Resubmit all failed jobs
 
 ${YELLOW}Output Viewing:${RESET}
   slurmctl ${GREEN}tail${RESET} / ${GREEN}cat${RESET} / ${GREEN}head${RESET} / ${GREEN}less${RESET}   View job output/error
@@ -31,7 +32,7 @@ ${YELLOW}Output Viewing:${RESET}
 
 ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancel${RESET}                  Cancel current job
-  slurmctl ${GREEN}cancelall${RESET}               Cancel all your jobs
+  slurmctl ${GREEN}cancelall${RESET}               Cancel all project jobs
 
 ${YELLOW}Cluster Info:${RESET}
   slurmctl ${GREEN}nodes${RESET}                   Jobs per node
