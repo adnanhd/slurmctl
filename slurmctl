@@ -45,4 +45,4 @@ if [ ! -f "$libexec" ]; then
   exit 1
 fi
 
-exec bash "$libexec" "$@"
+source "$libexec" "$@"
