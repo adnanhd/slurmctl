@@ -13,7 +13,9 @@ export SLURMCTL_PROJECT_ROOT
 source "$SLURMCTL_SRC_DIR/lib/common.sh"
 source "$SLURMCTL_SRC_DIR/lib/sacct.sh"
 
-# Parse global flags before subcommand
+# Extract --job/-j and --help/-h from anywhere in argv, pass the rest through
+cmd=""
+rest=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --job|-j)
@@ -21,22 +23,21 @@ while [ $# -gt 0 ]; do
       shift 2
       ;;
     --help|-h)
-      set -- help
-      break
-      ;;
-    -*)
-      printf "${RED}Unknown flag: %s${RESET}\n" "$1" >&2
-      exit 1
+      cmd="help"
+      shift
       ;;
     *)
-      break
+      rest+=("$1")
+      shift
       ;;
   esac
 done
 
-# Subcommand dispatch
-cmd="${1:-help}"
-shift || true
+# First non-flag arg is the subcommand
+if [ -z "$cmd" ]; then
+  cmd="${rest[0]:-help}"
+  rest=("${rest[@]:1}")
+fi
 
 libexec="$SLURMCTL_SRC_DIR/libexec/slurmctl/${cmd}.sh"
 if [ ! -f "$libexec" ]; then
@@ -45,4 +46,4 @@ if [ ! -f "$libexec" ]; then
   exit 1
 fi
 
-source "$libexec" "$@"
+source "$libexec" "${rest[@]+"${rest[@]}"}"

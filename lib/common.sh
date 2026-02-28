@@ -42,12 +42,13 @@ json_set_state() {
   echo "${clean%\}}, \"state\":\"$state\"}"
 }
 
-# Resolve output pattern: expand %A→jobid, %a→*, %j→jobid, then glob
+# Resolve output pattern: expand %A→jobid, %a→task_id|*, %j→jobid
+# Usage: resolve_output_pattern <pattern> <jobid> [array_index]
 resolve_output_pattern() {
-  local pattern="$1" jobid="$2"
+  local pattern="$1" jobid="$2" array_index="${3:-*}"
   pattern="${pattern//%A/$jobid}"
   pattern="${pattern//%j/$jobid}"
-  pattern="${pattern//%a/*}"
+  pattern="${pattern//%a/$array_index}"
   echo "$pattern"
 }
 
