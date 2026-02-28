@@ -15,7 +15,7 @@ else
 fi
 
 # Config — single directory for all slurm output, error, and log files
-SLURMCTL_LOG_DIR="${SLURMCTL_LOG_DIR:-$HOME/.slurm}"
+SLURMCTL_LOG_DIR="${SLURMCTL_LOG_DIR:-$HOME/.slurm/log}"
 mkdir -p "$SLURMCTL_LOG_DIR"
 
 # Per-project history file: encode project path into filename

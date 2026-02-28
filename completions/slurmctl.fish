@@ -29,6 +29,7 @@ complete -c slurmctl -n __fish_use_subcommand -a history      -d 'Show submissio
 complete -c slurmctl -n __fish_use_subcommand -a pop          -d 'Archive job from active history'
 complete -c slurmctl -n __fish_use_subcommand -a clear        -d 'Clear all history'
 complete -c slurmctl -n __fish_use_subcommand -a clean        -d 'Remove SLURM output files'
+complete -c slurmctl -n __fish_use_subcommand -a health       -d 'Cluster health overview'
 complete -c slurmctl -n __fish_use_subcommand -a help         -d 'Show usage'
 
 # Global flags

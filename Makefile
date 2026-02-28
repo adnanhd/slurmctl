@@ -6,7 +6,7 @@ BASH_COMP  = $(PREFIX)/share/bash-completion/completions
 FISH_COMP  = $(PREFIX)/share/fish/vendor_completions.d
 FISH_FUNC  = $(PREFIX)/share/fish/vendor_functions.d
 
-.PHONY: install uninstall
+.PHONY: install uninstall patch
 
 install:
 	mkdir -p $(SHARE_DIR) $(BIN_DIR) $(BASH_COMP) $(FISH_COMP) $(FISH_FUNC)
@@ -18,6 +18,9 @@ install:
 	cp completions/slurmctl.fish $(FISH_COMP)/slurmctl.fish
 	cp functions/slurmctl.fish $(FISH_FUNC)/slurmctl.fish
 	@echo "Installed to $(PREFIX)"
+
+patch:
+	@bash $(CURDIR)/patch.sh
 
 uninstall:
 	rm -f $(BIN_DIR)/slurmctl

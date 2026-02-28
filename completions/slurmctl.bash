@@ -7,7 +7,7 @@ _slurmctl() {
 
   local subcommands="submit list status acct tasks running failed resubmit resubmitall
     tail cat head less watch errors cancel cancelall nodes users info
-    update history pop clear clean help failed-list"
+    update history pop clear clean health help failed-list"
 
   # Complete subcommand as first argument
   if [ "$cword" -eq 1 ]; then
