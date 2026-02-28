@@ -12,6 +12,7 @@ install:
 	mkdir -p $(SHARE_DIR) $(BIN_DIR) $(BASH_COMP) $(FISH_COMP) $(FISH_FUNC)
 	cp -r lib libexec slurmctl $(SHARE_DIR)/
 	chmod +x $(SHARE_DIR)/slurmctl
+	@echo "$$(git rev-parse --short HEAD 2>/dev/null || echo unknown) ($$(git branch --show-current 2>/dev/null || echo unknown))" > $(SHARE_DIR)/VERSION
 	ln -sf $(SHARE_DIR)/slurmctl $(BIN_DIR)/slurmctl
 	cp completions/slurmctl.bash $(BASH_COMP)/slurmctl
 	cp completions/slurmctl.fish $(FISH_COMP)/slurmctl.fish

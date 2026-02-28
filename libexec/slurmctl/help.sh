@@ -46,6 +46,9 @@ ${YELLOW}History:${RESET}
   slurmctl ${GREEN}clear${RESET}                   Clear all history
   slurmctl ${GREEN}clean${RESET}                   Remove SLURM output files
 
+${YELLOW}Other:${RESET}
+  slurmctl ${GREEN}health${RESET}                  Version, environment, connectivity
+
 ${YELLOW}Global Flags:${RESET}
   --job, -j <JOBID>            Override auto-detected job ID
 
