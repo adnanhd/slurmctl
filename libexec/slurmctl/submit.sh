@@ -32,11 +32,11 @@ done
 
 # 2) Parse the script for #SBATCH --output / #SBATCH --error directives
 if [ -z "$user_out" ]; then
-  user_out=$(grep -m1 '^#SBATCH\s\+\(-o\s\+\|--output=\)' "$script" 2>/dev/null \
+  user_out=$( (grep -m1 '^#SBATCH\s\+\(-o\s\+\|--output=\)' "$script" || true) \
     | sed 's/^#SBATCH\s\+\(-o\s\+\|--output=\)//' | sed 's/\s*#.*//' | xargs)
 fi
 if [ -z "$user_err" ]; then
-  user_err=$(grep -m1 '^#SBATCH\s\+\(-e\s\+\|--error=\)' "$script" 2>/dev/null \
+  user_err=$( (grep -m1 '^#SBATCH\s\+\(-e\s\+\|--error=\)' "$script" || true) \
     | sed 's/^#SBATCH\s\+\(-e\s\+\|--error=\)//' | sed 's/\s*#.*//' | xargs)
 fi
 
