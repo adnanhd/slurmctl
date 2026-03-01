@@ -35,8 +35,9 @@ complete -c slurmctl -n __fish_use_subcommand -a help         -d 'Show usage'
 # Global flags
 complete -c slurmctl -l job -s j -d 'Override auto-detected job ID' -x
 
-# submit: complete .slurm files
+# submit: complete .slurm files and flags
 complete -c slurmctl -n '__fish_seen_subcommand_from submit' -F -a '*.slurm'
+complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l after -d 'Run after job completes (afterok)' -x
 
 # tail/cat/head/less flags
 complete -c slurmctl -n '__fish_seen_subcommand_from tail cat head less' -l no-out -d 'View only stderr'

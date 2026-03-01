@@ -18,8 +18,9 @@ _slurmctl() {
   local cmd="${words[1]}"
   case "$cmd" in
     submit)
-      # Complete .slurm files
-      COMPREPLY=($(compgen -f -X '!*.slurm' -- "$cur"))
+      # Complete .slurm files and submit-specific flags
+      COMPREPLY=($(compgen -W "--after" -- "$cur"))
+      COMPREPLY+=($(compgen -f -X '!*.slurm' -- "$cur"))
       ;;
     tail|cat|head|less)
       COMPREPLY=($(compgen -W "--no-out --no-err --job -j" -- "$cur"))

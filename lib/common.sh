@@ -85,6 +85,7 @@ color_state() {
     COMPLETED)             printf "${GREEN}%s${RESET}" "$state" ;;
     RUNNING)               printf "${YELLOW}%s${RESET}" "$state" ;;
     PENDING)               printf "${BLUE}%s${RESET}" "$state" ;;
+    DEPENDING*)            printf "${CYAN}%s${RESET}" "$state" ;;
     FAILED*|TIMEOUT*)      printf "${RED}%s${RESET}" "$state" ;;
     *)                     printf "${CYAN}%s${RESET}" "$state" ;;
   esac
