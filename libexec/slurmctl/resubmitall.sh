@@ -1,5 +1,11 @@
 #!/bin/bash
 # resubmitall — resubmit all failed jobs from history
+cmd_help "${CYAN}slurmctl resubmitall${RESET} — Resubmit all failed jobs
+
+${YELLOW}Usage:${RESET}  slurmctl resubmitall
+
+Iterates over all FAILED jobs in history, marks each as 'resubmitted',
+and submits a fresh run of each script." "$@"
 
 if [ ! -f "$HIST_FILE" ]; then
   printf "${YELLOW}No history${RESET}\n"

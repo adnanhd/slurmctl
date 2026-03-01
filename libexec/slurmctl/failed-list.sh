@@ -1,5 +1,10 @@
 #!/bin/bash
 # failed-list — detailed list of failed tasks
+cmd_help "${CYAN}slurmctl failed-list${RESET} — Detailed list of failed tasks
+
+${YELLOW}Usage:${RESET}  slurmctl failed-list [-j JOBID]
+
+Shows state, exit code, and elapsed time for each failed array task." "$@"
 
 JOBID=$(require_jobid)
 

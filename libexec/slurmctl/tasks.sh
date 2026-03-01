@@ -1,5 +1,10 @@
 #!/bin/bash
 # tasks — show status of all array tasks
+cmd_help "${CYAN}slurmctl tasks${RESET} — Show status of all array tasks
+
+${YELLOW}Usage:${RESET}  slurmctl tasks [-j JOBID]
+
+Lists every array task with state, exit code, elapsed time, and start time." "$@"
 
 JOBID=$(require_jobid)
 printf "${CYAN}Array Tasks for %s:${RESET}\n" "$JOBID"

@@ -1,5 +1,10 @@
 #!/bin/bash
 # health — show slurmctl version, environment, and connectivity
+cmd_help "${CYAN}slurmctl health${RESET} — Environment and connectivity check
+
+${YELLOW}Usage:${RESET}  slurmctl health
+
+Shows slurmctl version, paths, history stats, and SLURM cluster status." "$@"
 
 printf "${CYAN}slurmctl health${RESET}\n"
 echo "==============================="

@@ -1,5 +1,10 @@
 #!/bin/bash
 # users — jobs per user
+cmd_help "${CYAN}slurmctl users${RESET} — Jobs per user
+
+${YELLOW}Usage:${RESET}  slurmctl users
+
+Shows top 10 users by number of queued jobs." "$@"
 
 printf "${CYAN}Jobs per User:${RESET}\n"
 squeue -o "%u" -h | sort | uniq -c | sort -rn | head -10 | \

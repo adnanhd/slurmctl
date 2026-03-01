@@ -77,6 +77,15 @@ require_jobid() {
   echo "$jid"
 }
 
+# Show help and exit if --help/-h is in args
+# Usage: cmd_help "help text" "$@"
+cmd_help() {
+  local text="$1"; shift
+  for arg in "$@"; do
+    case "$arg" in --help|-h) printf "\n%b\n" "$text"; exit 0 ;; esac
+  done
+}
+
 # Color a state string for display
 color_state() {
   local state="$1"

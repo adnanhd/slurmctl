@@ -1,5 +1,10 @@
 #!/bin/bash
 # cancelall — cancel all active project jobs
+cmd_help "${CYAN}slurmctl cancelall${RESET} — Cancel all active project jobs
+
+${YELLOW}Usage:${RESET}  slurmctl cancelall
+
+Cancels every non-terminal job in the project history and marks them as 'cancelled'." "$@"
 
 if [ ! -f "$HIST_FILE" ]; then
   printf "${YELLOW}No history${RESET}\n"

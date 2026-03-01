@@ -1,5 +1,10 @@
 #!/bin/bash
 # watch — live tail of job output
+cmd_help "${CYAN}slurmctl watch${RESET} — Live tail of job output
+
+${YELLOW}Usage:${RESET}  slurmctl watch [-j JOBID]
+
+Runs tail -f on the job's stdout and stderr files. Press Ctrl+C to stop." "$@"
 
 JOBID=$(require_jobid)
 

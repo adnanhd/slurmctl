@@ -13,7 +13,7 @@ export SLURMCTL_PROJECT_ROOT
 source "$SLURMCTL_SRC_DIR/lib/common.sh"
 source "$SLURMCTL_SRC_DIR/lib/sacct.sh"
 
-# Extract --job/-j and --help/-h from anywhere in argv, pass the rest through
+# Extract --job/-j from anywhere in argv; pass --help through to subcommands
 cmd=""
 rest=()
 while [ $# -gt 0 ]; do
@@ -23,7 +23,7 @@ while [ $# -gt 0 ]; do
       shift 2
       ;;
     --help|-h)
-      cmd="help"
+      rest+=("--help")
       shift
       ;;
     *)
@@ -34,9 +34,13 @@ while [ $# -gt 0 ]; do
 done
 
 # First non-flag arg is the subcommand
-if [ -z "$cmd" ]; then
-  cmd="${rest[0]:-help}"
-  rest=("${rest[@]:1}")
+cmd="${rest[0]:-help}"
+rest=("${rest[@]:1}")
+
+# --help with no subcommand → global help
+if [ "$cmd" = "--help" ]; then
+  cmd="help"
+  rest=()
 fi
 
 libexec="$SLURMCTL_SRC_DIR/libexec/slurmctl/${cmd}.sh"

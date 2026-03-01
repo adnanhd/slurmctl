@@ -1,5 +1,17 @@
 #!/bin/bash
 # tail — view job output/error (also handles cat, head, less)
+cmd_help "${CYAN}slurmctl tail${RESET} / ${CYAN}cat${RESET} / ${CYAN}head${RESET} / ${CYAN}less${RESET} — View job output
+
+${YELLOW}Usage:${RESET}  slurmctl tail [-j JOBID] [--no-out] [--no-err]
+        slurmctl cat  [-j JOBID] [--no-out] [--no-err]
+        slurmctl head [-j JOBID] [--no-out] [--no-err]
+        slurmctl less [-j JOBID] [--no-out] [--no-err]
+
+${YELLOW}Options:${RESET}
+  --no-out    Show only stderr (skip stdout)
+  --no-err    Show only stdout (skip stderr)
+
+Output files are resolved from history, then \$SLURMCTL_LOG_DIR, then ~/.slurm/." "$@"
 
 # Parse args first (--job may override SLURMCTL_JOBID)
 VIEWER="tail"

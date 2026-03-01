@@ -1,5 +1,11 @@
 #!/bin/bash
 # resubmit — resubmit failed tasks
+cmd_help "${CYAN}slurmctl resubmit${RESET} — Resubmit failed tasks
+
+${YELLOW}Usage:${RESET}  slurmctl resubmit [-j JOBID]
+
+Finds failed array tasks via sacct, marks the old job as 'resubmitted',
+and submits a new job with --array= set to the failed task IDs." "$@"
 
 JOBID=$(require_jobid)
 

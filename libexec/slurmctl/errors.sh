@@ -1,5 +1,10 @@
 #!/bin/bash
 # errors — show recent errors
+cmd_help "${CYAN}slurmctl errors${RESET} — Show recent stderr output
+
+${YELLOW}Usage:${RESET}  slurmctl errors [-j JOBID]
+
+Shows the last 5 lines of the most recent stderr files for the job." "$@"
 
 JOBID=$(require_jobid)
 

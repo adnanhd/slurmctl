@@ -1,5 +1,11 @@
 #!/bin/bash
 # update — refresh job states from sacct into history
+cmd_help "${CYAN}slurmctl update${RESET} — Refresh job states from sacct
+
+${YELLOW}Usage:${RESET}  slurmctl update
+
+Queries sacct for every job in history and updates their state.
+Terminal states (cancelled, resubmitted) are preserved." "$@"
 
 if [ ! -f "$HIST_FILE" ]; then
   printf "${YELLOW}No history${RESET}\n"
