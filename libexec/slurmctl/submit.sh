@@ -56,15 +56,15 @@ while [ $i -lt ${#args[@]} ]; do
         printf "${RED}--after requires a job ID${RESET}\n" >&2
         exit 1
       fi
-      ((i+=2))
+      i=$((i+2))
       ;;
     --after=*)
       depends_on="${args[$i]#--after=}"
-      ((i++))
+      i=$((i+1))
       ;;
     *)
       passthrough+=("${args[$i]}")
-      ((i++))
+      i=$((i+1))
       ;;
   esac
 done
@@ -78,9 +78,9 @@ user_err=""
 args=("$@")
 for ((i=0; i<${#args[@]}; i++)); do
   case "${args[$i]}" in
-    -o)           user_out="${args[$((i+1))]:-}"; ((i++)) ;;
+    -o)           user_out="${args[$((i+1))]:-}"; i=$((i+1)) ;;
     --output=*)   user_out="${args[$i]#--output=}" ;;
-    -e)           user_err="${args[$((i+1))]:-}"; ((i++)) ;;
+    -e)           user_err="${args[$((i+1))]:-}"; i=$((i+1)) ;;
     --error=*)    user_err="${args[$i]#--error=}" ;;
   esac
 done
