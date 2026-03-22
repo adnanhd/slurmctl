@@ -15,11 +15,20 @@ fi
 while IFS= read -r line; do
   old_state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
 
-  # Preserve terminal states
-  if [ "$old_state" = "cancelled" ] || [ "$old_state" = "resubmitted" ]; then
-    echo "$line"
-    continue
-  fi
+  # Skip terminal states — only query sacct for jobs still in progress
+  case "$old_state" in
+    cancelled|resubmitted|COMPLETED|FAILED*|TIMEOUT*|OUT_OF_MEMORY)
+      echo "$line"
+      continue
+      ;;
+    *" / "*)
+      # Array job summary — skip if no running or pending tasks
+      if ! echo "$old_state" | grep -qE '\b(run|pend)\b'; then
+        echo "$line"
+        continue
+      fi
+      ;;
+  esac
 
   jid=$(json_get "$line" job_id)
   state=$(sacct_summary_compact "$jid")
