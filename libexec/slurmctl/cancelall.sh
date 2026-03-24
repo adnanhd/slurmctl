@@ -17,7 +17,7 @@ while IFS= read -r line; do
 
   # Skip terminal states
   case "$state" in
-    cancelled|COMPLETED|FAILED*|TIMEOUT*|resubmitted) continue ;;
+    cancelled|archived|COMPLETED|FAILED*|TIMEOUT*|resubmitted) continue ;;
   esac
 
   jid=$(json_get "$line" job_id)
@@ -31,7 +31,7 @@ if [ "$count" -gt 0 ]; then
   while IFS= read -r line; do
     state=$(json_get_state "$line")
     case "$state" in
-      cancelled|COMPLETED|FAILED*|TIMEOUT*|resubmitted)
+      cancelled|archived|COMPLETED|FAILED*|TIMEOUT*|resubmitted)
         echo "$line"
         ;;
       *)

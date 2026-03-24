@@ -17,7 +17,7 @@ while IFS= read -r line; do
 
   # Skip terminal states — only query sacct for jobs still in progress
   case "$old_state" in
-    cancelled|resubmitted|COMPLETED|FAILED*|TIMEOUT*|OUT_OF_MEMORY)
+    cancelled|archived|resubmitted|COMPLETED|FAILED*|TIMEOUT*|OUT_OF_MEMORY)
       echo "$line"
       continue
       ;;

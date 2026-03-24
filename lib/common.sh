@@ -139,6 +139,7 @@ resolve_jobid() {
   fi
   grep -v '"state":"cancelled"' "$HIST_FILE" 2>/dev/null \
     | grep -v '"state":"resubmitted"' \
+    | grep -v '"state":"archived"' \
     | tail -1 | sed 's/.*"job_id":"\([^"]*\)".*/\1/'
 }
 
@@ -166,7 +167,7 @@ cmd_help() {
 color_state() {
   local state="$1"
   case "$state" in
-    cancelled|resubmitted) printf "${RED}%s${RESET}" "$state" ;;
+    cancelled|resubmitted|archived) printf "${RED}%s${RESET}" "$state" ;;
     COMPLETED)             printf "${GREEN}%s${RESET}" "$state" ;;
     RUNNING)               printf "${YELLOW}%s${RESET}" "$state" ;;
     PENDING)               printf "${BLUE}%s${RESET}" "$state" ;;

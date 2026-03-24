@@ -2,25 +2,38 @@
 # nodes — node status overview
 cmd_help "${CYAN}slurmctl nodes${RESET} — Node status overview
 
-${YELLOW}Usage:${RESET}  slurmctl nodes [-p PARTITION]
+${YELLOW}Usage:${RESET}  slurmctl nodes [-p PARTITION] [--raw]
 
 Shows all nodes with their state and resource allocation [used/total].
 
 ${YELLOW}Options:${RESET}
   -p, --partition PART  Filter to a specific partition
+  --raw                 Raw sinfo output (partition, nodes, state, CPUs, mem, GPUs)
 
 ${YELLOW}Examples:${RESET}
   slurmctl nodes                        All nodes
-  slurmctl nodes -p kolyoz-cuda         Only kolyoz-cuda partition" "$@"
+  slurmctl nodes -p kolyoz-cuda         Only kolyoz-cuda partition
+  slurmctl nodes --raw                  Raw sinfo table" "$@"
 
 PARTITION=""
+RAW=false
 while [ $# -gt 0 ]; do
   case "$1" in
     -p|--partition) PARTITION="$2"; shift 2 ;;
     --partition=*)  PARTITION="${1#*=}"; shift ;;
+    --raw)          RAW=true; shift ;;
     *) shift ;;
   esac
 done
+
+if $RAW; then
+  SINFO_RAW=(-o "%12P %36N %8t %6c %8m %14G")
+  [ -n "$PARTITION" ] && SINFO_RAW+=(-p "$PARTITION") || SINFO_RAW+=(--all)
+  printf "${CYAN}Cluster Info:${RESET}\n"
+  sinfo "${SINFO_RAW[@]}" | \
+    sed "1s/^/$(printf "${YELLOW}")/" | sed "1s/$/$(printf "${RESET}")/"
+  exit 0
+fi
 
 SINFO_ARGS=(-h -N --Format "NodeHost:20,Partition:14,StateLong:12,CPUsState:14,Gres:24,GresUsed:24")
 if [ -n "$PARTITION" ]; then

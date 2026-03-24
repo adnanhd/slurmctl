@@ -43,14 +43,14 @@ ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancelall${RESET}               Cancel all active project jobs
 
 ${YELLOW}Cluster Info:${RESET}
-  slurmctl ${GREEN}nodes${RESET} [-p PART]          Node status and CPU usage
+  slurmctl ${GREEN}nodes${RESET} [-p PART]          Node status and resource usage
+  slurmctl ${GREEN}nodes${RESET} --raw             Raw sinfo table (alias: info)
   slurmctl ${GREEN}users${RESET} [-p PART]          Your jobs grouped by node
-  slurmctl ${GREEN}info${RESET}                    Partition/node info (sinfo)
 
 ${YELLOW}History:${RESET}
   slurmctl ${GREEN}update${RESET}                  Refresh job states from sacct
   slurmctl ${GREEN}history${RESET} [-n N] [--all]   Submission log (newest first)
-  slurmctl ${GREEN}pop${RESET}                     Archive job from active history
+  slurmctl ${GREEN}pop${RESET}                     Archive job (remove from active stack)
   slurmctl ${GREEN}clear${RESET}                   Clear all history
   slurmctl ${GREEN}clean${RESET}                   Remove SLURM output files
 
