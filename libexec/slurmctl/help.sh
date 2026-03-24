@@ -29,12 +29,12 @@ ${YELLOW}Array Jobs:${RESET}
   slurmctl ${GREEN}resubmitall${RESET}             Resubmit all failed jobs from history
 
 ${YELLOW}Output Viewing:${RESET}
-  slurmctl ${GREEN}tail${RESET} [N]                Last N lines of stdout + stderr (default: 50)
+  slurmctl ${GREEN}tail${RESET} [ARGS...]           Tail stdout + stderr (pass args to tail)
   slurmctl ${GREEN}cat${RESET}                     Full stdout + stderr
-  slurmctl ${GREEN}head${RESET} [N]                First N lines of stdout + stderr
+  slurmctl ${GREEN}head${RESET} [ARGS...]           Head of stdout + stderr
   slurmctl ${GREEN}less${RESET}                    Pager view of stdout + stderr
   slurmctl ${GREEN}watch${RESET}                   Live tail -f of job output
-  slurmctl ${GREEN}errors${RESET}                  Recent stderr output
+  slurmctl ${GREEN}errors${RESET}                  Last 5 lines of recent stderr files
     --no-out             Show only stderr
     --no-err             Show only stdout
 
@@ -49,7 +49,7 @@ ${YELLOW}Cluster Info:${RESET}
 
 ${YELLOW}History:${RESET}
   slurmctl ${GREEN}update${RESET}                  Refresh job states from sacct
-  slurmctl ${GREEN}history${RESET} [N]             Show last N submissions (default: 10, 0=all)
+  slurmctl ${GREEN}history${RESET} [-n N] [--all]   Submission log (newest first)
   slurmctl ${GREEN}pop${RESET}                     Archive job from active history
   slurmctl ${GREEN}clear${RESET}                   Clear all history
   slurmctl ${GREEN}clean${RESET}                   Remove SLURM output files
