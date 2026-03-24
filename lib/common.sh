@@ -34,12 +34,38 @@ json_get_or_empty() {
   echo "$val"
 }
 
+# Extract state field from a JSON line
+json_get_state() {
+  echo "$1" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g'
+}
+
 # Set/replace state field in a JSON line
 json_set_state() {
   local line="$1" state="$2"
   local clean
   clean=$(echo "$line" | sed 's/ *,\? *"state":"[^"]*"//g')
   echo "${clean%\}}, \"state\":\"$state\"}"
+}
+
+# Update state for a job ID in the history file
+# Usage: mark_job_state <jobid> <new_state>
+mark_job_state() {
+  local jobid="$1" new_state="$2"
+  [ -f "$HIST_FILE" ] || return 0
+  local tmpfile="${HIST_FILE}.tmp"
+  while IFS= read -r line; do
+    if echo "$line" | grep -q "\"job_id\":\"$jobid\""; then
+      json_set_state "$line" "$new_state"
+    else
+      echo "$line"
+    fi
+  done < "$HIST_FILE" > "$tmpfile" && mv "$tmpfile" "$HIST_FILE"
+}
+
+# Get the history entry for a job ID
+# Usage: get_history_entry <jobid>
+get_history_entry() {
+  grep "\"job_id\":\"$1\"" "$HIST_FILE" 2>/dev/null | tail -1
 }
 
 # Resolve output pattern: expand %A→jobid, %a→task_id|*, %j→jobid
@@ -50,6 +76,56 @@ resolve_output_pattern() {
   pattern="${pattern//%j/$jobid}"
   pattern="${pattern//%a/$array_index}"
   echo "$pattern"
+}
+
+# Resolve output files for a job, sets OUT_FILE and ERR_FILE
+# Usage: resolve_job_output_files <jobid> [array_index]
+resolve_job_output_files() {
+  local jobid="$1" array_index="${2:-}"
+  local base_jobid="${jobid%%_*}"
+  if [ -z "$array_index" ] && [[ "$jobid" == *_* ]]; then
+    array_index="${jobid#*_}"
+  fi
+
+  OUT_FILE=""
+  ERR_FILE=""
+
+  # 1) Try history log
+  local hist_line
+  hist_line=$(get_history_entry "$base_jobid")
+  if [ -n "$hist_line" ]; then
+    local logged_out logged_err pattern
+    logged_out=$(json_get_or_empty "$hist_line" out_path)
+    logged_err=$(json_get_or_empty "$hist_line" err_path)
+    logged_out="${logged_out%% #*}"
+    logged_err="${logged_err%% #*}"
+
+    if [ -n "$logged_out" ]; then
+      pattern=$(resolve_output_pattern "$logged_out" "$base_jobid" "${array_index:-*}")
+      OUT_FILE=$(ls -t $pattern 2>/dev/null | head -1 || true)
+    fi
+    if [ -n "$logged_err" ]; then
+      pattern=$(resolve_output_pattern "$logged_err" "$base_jobid" "${array_index:-*}")
+      ERR_FILE=$(ls -t $pattern 2>/dev/null | head -1 || true)
+    fi
+  fi
+
+  # 2) Fallback: SLURMCTL_LOG_DIR
+  if [ -z "$OUT_FILE" ]; then
+    OUT_FILE=$(ls -t "$SLURMCTL_LOG_DIR/${jobid}".out "$SLURMCTL_LOG_DIR/${jobid}"_*.out 2>/dev/null | head -1 || true)
+  fi
+  if [ -z "$ERR_FILE" ]; then
+    ERR_FILE=$(ls -t "$SLURMCTL_LOG_DIR/${jobid}".err "$SLURMCTL_LOG_DIR/${jobid}"_*.err 2>/dev/null | head -1 || true)
+  fi
+
+  # 3) Fallback: ~/.slurm/ (legacy)
+  local legacy_dir="$HOME/.slurm"
+  if [ -z "$OUT_FILE" ] && [ -d "$legacy_dir" ]; then
+    OUT_FILE=$(ls -t "$legacy_dir/${jobid}".out "$legacy_dir/${jobid}"_*.out 2>/dev/null | head -1 || true)
+  fi
+  if [ -z "$ERR_FILE" ] && [ -d "$legacy_dir" ]; then
+    ERR_FILE=$(ls -t "$legacy_dir/${jobid}".err "$legacy_dir/${jobid}"_*.err 2>/dev/null | head -1 || true)
+  fi
 }
 
 # Resolve the active job ID (most recent non-cancelled, non-resubmitted from history)

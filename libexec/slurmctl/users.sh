@@ -18,7 +18,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-SQUEUE_ARGS=(-u "$USER" -h -o "%i %t %P %N %j")
+SQUEUE_ARGS=(-u "$USER" -h -o "%i|%t|%P|%N|%j")
 if [ -n "$PARTITION" ]; then
   SQUEUE_ARGS+=(-p "$PARTITION")
 fi
@@ -31,10 +31,11 @@ if [ -z "$output" ]; then
 fi
 
 printf "${CYAN}Your jobs by node:${RESET}\n"
-echo "$output" | awk -v g="$GREEN" -v y="$YELLOW" -v b="$BLUE" -v r="$RESET" -v c="$CYAN" '
+echo "$output" | awk -F'|' -v g="$GREEN" -v y="$YELLOW" -v b="$BLUE" -v r="$RESET" -v c="$CYAN" '
 {
+  # Trim whitespace from fields
+  for (f = 1; f <= NF; f++) { gsub(/^ +| +$/, "", $f) }
   jobid=$1; state=$2; part=$3; node=$4; name=$5
-  for(i=6;i<=NF;i++) name=name" "$i
 
   if (state == "R") sc = g "R" r
   else if (state == "PD") sc = b "PD" r
@@ -44,7 +45,7 @@ echo "$output" | awk -v g="$GREEN" -v y="$YELLOW" -v b="$BLUE" -v r="$RESET" -v 
 
   key = node
   if (!(key in nodes)) { order[++n] = key }
-  nodes[key] = nodes[key] sprintf("    %s%-10s%s %s %-4s %s%s%s\n", c, jobid, r, sc, part, y, name, r)
+  nodes[key] = nodes[key] sprintf("    %s%-10s%s %s %-14s %s%s%s\n", c, jobid, r, sc, part, y, name, r)
   counts[key]++
 }
 END {

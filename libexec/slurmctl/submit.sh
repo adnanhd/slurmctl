@@ -130,12 +130,14 @@ REPO=$(git remote get-url origin 2>/dev/null || echo "")
 COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "")
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
-# Build JSON — include depends_on only if set
+# Build JSON — escape values that may contain quotes/backslashes
+json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g;s/"/\\"/g'; }
+
 dep_field=""
 [ -n "$depends_on" ] && dep_field="\"depends_on\":\"$depends_on\","
 
 printf '{%s"job_id":"%s","script":"%s","args":"%s","repo":"%s","commit":"%s","branch":"%s","created":"%s","out_path":"%s","err_path":"%s","state":"PENDING"}\n' \
-  "$dep_field" "$JID" "$(basename "$script")" "$*" "$REPO" "$COMMIT" "$BRANCH" "$(date -Iseconds)" "$user_out" "$user_err" >> "$HIST_FILE"
+  "$dep_field" "$JID" "$(json_escape "$(basename "$script")")" "$(json_escape "$*")" "$(json_escape "$REPO")" "$COMMIT" "$BRANCH" "$(date -Iseconds)" "$(json_escape "$user_out")" "$(json_escape "$user_err")" >> "$HIST_FILE"
 
 printf "${GREEN}Submitted${RESET} job %s\n" "$JID" >&2
 echo "$JID"

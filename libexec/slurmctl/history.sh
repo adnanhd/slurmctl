@@ -25,7 +25,7 @@ fi | while IFS= read -r line; do
   script=$(json_get "$line" script)
   commit=$(json_get "$line" commit)
   created=$(json_get "$line" created)
-  state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
+  state=$(json_get_state "$line")
   dep=$(json_get_or_empty "$line" depends_on)
 
   # Show DEPENDING instead of PENDING for jobs waiting on a dependency

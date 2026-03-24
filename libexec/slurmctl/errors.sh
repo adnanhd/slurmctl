@@ -8,22 +8,24 @@ Shows the last 5 lines of the most recent stderr files for the job." "$@"
 
 JOBID=$(require_jobid)
 
-# Try to resolve error paths from history log
-err_files=()
+resolve_job_output_files "$JOBID"
 
-hist_line=$(grep "\"job_id\":\"$JOBID\"" "$HIST_FILE" 2>/dev/null | tail -1)
-if [ -n "$hist_line" ]; then
-  logged_err=$(json_get_or_empty "$hist_line" err_path)
+err_files=()
+if [ -n "$ERR_FILE" ]; then
+  # Re-resolve to get multiple error files for array jobs
+  local_hist=$(get_history_entry "${JOBID%%_*}")
+  logged_err=$(json_get_or_empty "$local_hist" err_path)
+  logged_err="${logged_err%% #*}"
   if [ -n "$logged_err" ]; then
-    pattern=$(resolve_output_pattern "$logged_err" "$JOBID")
+    pattern=$(resolve_output_pattern "$logged_err" "${JOBID%%_*}")
     while IFS= read -r f; do
       err_files+=("$f")
     done < <(ls -t $pattern 2>/dev/null | head -5)
+  else
+    err_files=("$ERR_FILE")
   fi
-fi
-
-# Fallback to legacy glob
-if [ ${#err_files[@]} -eq 0 ]; then
+else
+  # Fallback glob for multiple files
   while IFS= read -r f; do
     err_files+=("$f")
   done < <(ls -t "$SLURMCTL_LOG_DIR/${JOBID}".err "$SLURMCTL_LOG_DIR/${JOBID}"_*.err 2>/dev/null | head -5)

@@ -14,7 +14,7 @@ fi
 
 count=0
 while IFS= read -r line; do
-  state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
+  state=$(json_get_state "$line")
 
   # Only resubmit jobs with FAILED state
   case "$state" in
@@ -30,8 +30,7 @@ while IFS= read -r line; do
     continue
   fi
 
-  # Mark old entry as resubmitted
-  sed -i "/\"job_id\":\"$jid\"/{s/ *,\? *\"state\":\"[^\"]*\"//g;s/}$/, \"state\":\"resubmitted\"}/;}" "$HIST_FILE"
+  mark_job_state "$jid" "resubmitted"
 
   printf "${CYAN}Resubmitting${RESET} %s (was job %s)\n" "$script" "$jid"
   bash "$SLURMCTL_SRC_DIR/libexec/slurmctl/submit.sh" "$script"

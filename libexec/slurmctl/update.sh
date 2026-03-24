@@ -13,7 +13,7 @@ if [ ! -f "$HIST_FILE" ]; then
 fi
 
 while IFS= read -r line; do
-  old_state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
+  old_state=$(json_get_state "$line")
 
   # Skip terminal states — only query sacct for jobs still in progress
   case "$old_state" in

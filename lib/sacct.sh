@@ -6,6 +6,16 @@
 #   sacct_summary <JOBID>          # prints: completed=N running=N pending=N failed=N total=N
 #   sacct_summary_compact <JOBID>  # prints: "12 done, 8 run / 72" or "COMPLETED"
 
+# Get comma-separated list of failed task IDs for an array job
+get_failed_task_ids() {
+  local jobid="$1"
+  sacct -j "$jobid" --format="JobID,State,ExitCode" -n | \
+    grep -v '\.' | \
+    grep -E 'FAILED|COMPLETED' | grep -v '0:0' | \
+    grep -oP '(?<=_)\d+(?= )' | \
+    sort -n | uniq | tr '\n' ',' | sed 's/,$//'
+}
+
 sacct_summary() {
   local jobid="$1"
   sacct -j "$jobid" -n --format='JobID,State,ExitCode' 2>/dev/null \

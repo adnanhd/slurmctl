@@ -13,7 +13,7 @@ fi
 
 count=0
 while IFS= read -r line; do
-  state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
+  state=$(json_get_state "$line")
 
   # Skip terminal states
   case "$state" in
@@ -29,7 +29,7 @@ done < "$HIST_FILE"
 # Update states in history file
 if [ "$count" -gt 0 ]; then
   while IFS= read -r line; do
-    state=$(echo "$line" | grep -o '"state":"[^"]*"' | sed 's/"state":"//;s/"//g')
+    state=$(json_get_state "$line")
     case "$state" in
       cancelled|COMPLETED|FAILED*|TIMEOUT*|resubmitted)
         echo "$line"
