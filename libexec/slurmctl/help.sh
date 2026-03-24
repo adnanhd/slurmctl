@@ -43,8 +43,8 @@ ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancelall${RESET}               Cancel all active project jobs
 
 ${YELLOW}Cluster Info:${RESET}
-  slurmctl ${GREEN}nodes${RESET}                   Jobs per node
-  slurmctl ${GREEN}users${RESET}                   Top users by job count
+  slurmctl ${GREEN}nodes${RESET} [-p PART]          Node status and CPU usage
+  slurmctl ${GREEN}users${RESET} [-p PART]          Your jobs grouped by node
   slurmctl ${GREEN}info${RESET}                    Partition/node info (sinfo)
 
 ${YELLOW}History:${RESET}
