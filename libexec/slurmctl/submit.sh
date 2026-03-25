@@ -9,8 +9,10 @@ ${CYAN}slurmctl submit${RESET} — Submit a SLURM job and track it in history
 
 ${YELLOW}Usage:${RESET}
   slurmctl submit <script>.slurm [options] [sbatch args...]
+  slurmctl submit --wrap="<command>" [options] [sbatch args...]
 
 ${YELLOW}Options:${RESET}
+  --wrap="<cmd>"        Submit an inline command (no script file needed)
   --after <jobid>       Run after <jobid> completes successfully (afterok dependency)
   -o, --output=<path>   Override stdout path (default: ~/.slurm/log/%A_%a.out)
   -e, --error=<path>    Override stderr path (default: ~/.slurm/log/%A_%a.err)
@@ -19,7 +21,8 @@ ${YELLOW}Examples:${RESET}
   slurmctl submit train.slurm
   slurmctl submit train.slurm --array=0-99%8
   slurmctl submit eval.slurm --after 12345
-  slurmctl submit train.slurm --time=24:00:00 --gres=gpu:2
+  slurmctl submit --wrap="python train.py --lr=0.01" --gres=gpu:1
+  slurmctl submit --wrap="hostname && nvidia-smi"
 
 ${YELLOW}Notes:${RESET}
   Any extra arguments are passed directly to sbatch.
@@ -29,21 +32,48 @@ EOF
   exit 0
 fi
 
-script="${1:?Usage: slurmctl submit <script>.slurm [options] [sbatch args...]}"
-shift
-
-if [ ! -f "$script" ] && [ -f "$SLURMCTL_PROJECT_ROOT/$script" ]; then
-  script="$SLURMCTL_PROJECT_ROOT/$script"
-fi
-
-if [ ! -f "$script" ]; then
-  printf "${RED}Script not found: %s${RESET}\n" "$script" >&2
-  exit 1
-fi
-
 mkdir -p "$SLURMCTL_LOG_DIR"
 
-# --- Parse slurmctl-specific flags (--after), separate from sbatch args ---
+# --- Detect --wrap mode early ---
+wrap_cmd=""
+script=""
+for arg in "$@"; do
+  case "$arg" in
+    --wrap=*) wrap_cmd="${arg#--wrap=}" ;;
+    --wrap)   ;; # handled below with next arg
+  esac
+done
+
+if [ -z "$wrap_cmd" ]; then
+  # Check for --wrap <cmd> (space-separated)
+  args=("$@")
+  for ((i=0; i<${#args[@]}; i++)); do
+    if [ "${args[$i]}" = "--wrap" ] && [ $((i+1)) -lt ${#args[@]} ]; then
+      wrap_cmd="${args[$((i+1))]}"
+      break
+    fi
+  done
+fi
+
+if [ -n "$wrap_cmd" ]; then
+  # Wrap mode — no script file needed
+  script_name="wrap"
+else
+  script="${1:?Usage: slurmctl submit <script>.slurm [options] [sbatch args...]}"
+  shift
+
+  if [ ! -f "$script" ] && [ -f "$SLURMCTL_PROJECT_ROOT/$script" ]; then
+    script="$SLURMCTL_PROJECT_ROOT/$script"
+  fi
+
+  if [ ! -f "$script" ]; then
+    printf "${RED}Script not found: %s${RESET}\n" "$script" >&2
+    exit 1
+  fi
+  script_name="$(basename "$script")"
+fi
+
+# --- Parse slurmctl-specific flags (--after, --wrap), separate from sbatch args ---
 depends_on=""
 passthrough=()
 args=("$@")
@@ -61,6 +91,14 @@ while [ $i -lt ${#args[@]} ]; do
     --after=*)
       depends_on="${args[$i]#--after=}"
       i=$((i+1))
+      ;;
+    --wrap=*)
+      # Already parsed, skip
+      i=$((i+1))
+      ;;
+    --wrap)
+      # Already parsed, skip both --wrap and its argument
+      i=$((i+2))
       ;;
     *)
       passthrough+=("${args[$i]}")
@@ -86,11 +124,11 @@ for ((i=0; i<${#args[@]}; i++)); do
 done
 
 # 2) Parse the script for #SBATCH --output / #SBATCH --error directives
-if [ -z "$user_out" ]; then
+if [ -z "$user_out" ] && [ -n "$script" ]; then
   user_out=$( (grep -m1 '^#SBATCH\s\+\(-o\s\+\|--output=\)' "$script" || true) \
     | sed 's/^#SBATCH\s\+\(-o\s\+\|--output=\)//' | sed 's/\s*#.*//' | xargs)
 fi
-if [ -z "$user_err" ]; then
+if [ -z "$user_err" ] && [ -n "$script" ]; then
   user_err=$( (grep -m1 '^#SBATCH\s\+\(-e\s\+\|--error=\)' "$script" || true) \
     | sed 's/^#SBATCH\s\+\(-e\s\+\|--error=\)//' | sed 's/\s*#.*//' | xargs)
 fi
@@ -115,11 +153,18 @@ fi
 [[ "$user_out" != /* ]] && user_out="$PWD/$user_out"
 [[ "$user_err" != /* ]] && user_err="$PWD/$user_err"
 
-printf "${CYAN}Submitting${RESET} %s %s" "$script" "$*" >&2
-[ -n "$depends_on" ] && printf " ${YELLOW}(after %s)${RESET}" "$depends_on" >&2
-printf "\n" >&2
-
-JID=$(sbatch "${sbatch_extra[@]}" --parsable "$@" "$script")
+# --- Submit ---
+if [ -n "$wrap_cmd" ]; then
+  printf "${CYAN}Submitting${RESET} --wrap=%s %s" "$wrap_cmd" "$*" >&2
+  [ -n "$depends_on" ] && printf " ${YELLOW}(after %s)${RESET}" "$depends_on" >&2
+  printf "\n" >&2
+  JID=$(sbatch "${sbatch_extra[@]}" --parsable "$@" --wrap="$wrap_cmd")
+else
+  printf "${CYAN}Submitting${RESET} %s %s" "$script" "$*" >&2
+  [ -n "$depends_on" ] && printf " ${YELLOW}(after %s)${RESET}" "$depends_on" >&2
+  printf "\n" >&2
+  JID=$(sbatch "${sbatch_extra[@]}" --parsable "$@" "$script")
+fi
 
 if [ -z "$JID" ]; then
   printf "${RED}Submission failed${RESET}\n" >&2
@@ -136,8 +181,11 @@ json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g;s/"/\\"/g'; }
 dep_field=""
 [ -n "$depends_on" ] && dep_field="\"depends_on\":\"$depends_on\","
 
+log_args="$*"
+[ -n "$wrap_cmd" ] && log_args="--wrap=$(json_escape "$wrap_cmd") $log_args"
+
 printf '{%s"job_id":"%s","script":"%s","args":"%s","repo":"%s","commit":"%s","branch":"%s","created":"%s","out_path":"%s","err_path":"%s","state":"PENDING"}\n' \
-  "$dep_field" "$JID" "$(json_escape "$(basename "$script")")" "$(json_escape "$*")" "$(json_escape "$REPO")" "$COMMIT" "$BRANCH" "$(date -Iseconds)" "$(json_escape "$user_out")" "$(json_escape "$user_err")" >> "$HIST_FILE"
+  "$dep_field" "$JID" "$(json_escape "$script_name")" "$(json_escape "$log_args")" "$(json_escape "$REPO")" "$COMMIT" "$BRANCH" "$(date -Iseconds)" "$(json_escape "$user_out")" "$(json_escape "$user_err")" >> "$HIST_FILE"
 
 printf "${GREEN}Submitted${RESET} job %s\n" "$JID" >&2
 echo "$JID"

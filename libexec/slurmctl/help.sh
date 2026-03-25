@@ -10,7 +10,9 @@ ${CYAN}slurmctl${RESET} — SLURM Job Management
 
 ${YELLOW}Submitting Jobs:${RESET}
   slurmctl ${GREEN}submit${RESET} <script>.slurm [opts] [sbatch args...]
+  slurmctl ${GREEN}submit${RESET} --wrap="<cmd>" [opts] [sbatch args...]
     Submit a job and track it in history. Git metadata is captured automatically.
+    --wrap="<cmd>"       Submit an inline command (no script needed)
     --after <jobid>      Run after <jobid> completes (afterok dependency)
     Any extra flags are passed directly to sbatch.
     Run ${CYAN}slurmctl submit --help${RESET} for full details.
@@ -64,6 +66,7 @@ ${YELLOW}Examples:${RESET}
   slurmctl submit train.slurm                     Submit a job
   slurmctl submit train.slurm --array=0-99%8      Submit array job
   slurmctl submit eval.slurm --after 12345        Submit with dependency
+  slurmctl submit --wrap="python train.py"       Inline command
   slurmctl running                                Check progress
   slurmctl tail --no-out                          View only stderr
   slurmctl -j 12345 tasks                         Check specific job's tasks
