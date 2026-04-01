@@ -194,7 +194,7 @@ COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "")
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
 # Build JSON — escape values that may contain quotes/backslashes
-json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g;s/"/\\"/g'; }
+json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g;s/"/\\"/g' | tr '\n' ' '; }
 
 dep_field=""
 [ -n "$depends_on" ] && dep_field="\"depends_on\":\"$depends_on\","
