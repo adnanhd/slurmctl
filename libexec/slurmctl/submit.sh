@@ -165,7 +165,7 @@ if [ -n "$script" ] && grep -P '^#SBATCH\s+--gres=' "$script" 2>/dev/null | sed 
 fi
 
 submit_script="$script"
-if $has_gpu && [ -n "$script" ] && [ -z "$SLURMCTL_NO_GPU_MONITOR" ]; then
+if $has_gpu && [ -n "$script" ] && [ -z "${SLURMCTL_NO_GPU_MONITOR:-}" ]; then
   source "$SLURMCTL_SRC_DIR/lib/gpu_monitor.sh"
   submit_script=$(gpu_wrap_script "$script" "$SLURMCTL_LOG_DIR")
   printf "${DIM}  gpu monitoring enabled${RESET}\n" >&2
