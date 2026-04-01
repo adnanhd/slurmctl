@@ -70,7 +70,7 @@ else
     printf "${RED}Script not found: %s${RESET}\n" "$script" >&2
     exit 1
   fi
-  script_name="$(basename "$script")"
+  script_name="$(cd "$(dirname "$script")" && pwd)/$(basename "$script")"
 fi
 
 # --- Parse slurmctl-specific flags (--after, --wrap), separate from sbatch args ---

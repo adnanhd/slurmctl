@@ -75,6 +75,14 @@ resolve_output_pattern() {
   pattern="${pattern//%A/$jobid}"
   pattern="${pattern//%j/$jobid}"
   pattern="${pattern//%a/$array_index}"
+  # Resolve %x (job name) via sacct if present in pattern
+  if [[ "$pattern" == *%x* ]]; then
+    local job_name
+    job_name=$(sacct -j "$jobid" --format=JobName%50 --noheader -P 2>/dev/null | head -1 | xargs)
+    if [ -n "$job_name" ]; then
+      pattern="${pattern//%x/$job_name}"
+    fi
+  fi
   echo "$pattern"
 }
 
