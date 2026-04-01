@@ -12,7 +12,7 @@ ${YELLOW}Options:${RESET}
 PARTITION=""
 while [ $# -gt 0 ]; do
   case "$1" in
-    -p|--partition) PARTITION="$2"; shift 2 ;;
+    -p|--partition) [ $# -lt 2 ] && { echo "error: --partition requires an argument" >&2; exit 1; }; PARTITION="$2"; shift 2 ;;
     --partition=*)  PARTITION="${1#*=}"; shift ;;
     *) shift ;;
   esac

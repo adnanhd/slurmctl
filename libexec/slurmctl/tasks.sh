@@ -39,7 +39,7 @@ while [ $# -gt 0 ]; do
     --pending)    FILTER="pending"; shift ;;
     --list)       LIST=true; shift ;;
     --resubmit)   RESUBMIT=true; shift ;;
-    --sort)       SORT_BY="$2"; shift 2 ;;
+    --sort)       [ $# -lt 2 ] && { echo "error: --sort requires an argument (time|node)" >&2; exit 1; }; SORT_BY="$2"; shift 2 ;;
     *) break ;;
   esac
 done
