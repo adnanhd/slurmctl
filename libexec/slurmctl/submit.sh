@@ -153,6 +153,24 @@ fi
 [[ "$user_out" != /* ]] && user_out="$PWD/$user_out"
 [[ "$user_err" != /* ]] && user_err="$PWD/$user_err"
 
+# --- GPU monitoring: wrap script if job requests GPUs ---
+has_gpu=false
+# Check CLI args for --gres=gpu (only before any # comment)
+for arg in "$@"; do
+  [[ "$arg" == --gres=*gpu* ]] && has_gpu=true
+done
+# Check script for #SBATCH --gres=gpu (strip inline comments first)
+if [ -n "$script" ] && grep -P '^#SBATCH\s+--gres=' "$script" 2>/dev/null | sed 's/\s\+#.*$//' | grep -q 'gpu'; then
+  has_gpu=true
+fi
+
+submit_script="$script"
+if $has_gpu && [ -n "$script" ] && [ -z "$SLURMCTL_NO_GPU_MONITOR" ]; then
+  source "$SLURMCTL_SRC_DIR/lib/gpu_monitor.sh"
+  submit_script=$(gpu_wrap_script "$script" "$SLURMCTL_LOG_DIR")
+  printf "${DIM}  gpu monitoring enabled${RESET}\n" >&2
+fi
+
 # --- Submit ---
 if [ -n "$wrap_cmd" ]; then
   printf "${CYAN}Submitting${RESET} --wrap=%s %s" "$wrap_cmd" "$*" >&2
@@ -163,7 +181,7 @@ else
   printf "${CYAN}Submitting${RESET} %s %s" "$script" "$*" >&2
   [ -n "$depends_on" ] && printf " ${YELLOW}(after %s)${RESET}" "$depends_on" >&2
   printf "\n" >&2
-  JID=$(sbatch "${sbatch_extra[@]}" --parsable "$@" "$script")
+  JID=$(sbatch "${sbatch_extra[@]}" --parsable "$@" "$submit_script")
 fi
 
 if [ -z "$JID" ]; then

@@ -6,15 +6,32 @@
 #   sacct_summary <JOBID>          # prints: completed=N running=N pending=N failed=N total=N
 #   sacct_summary_compact <JOBID>  # prints: "12 done, 8 run / 72" or "COMPLETED"
 
-# Get comma-separated list of failed task IDs for an array job
-get_failed_task_ids() {
-  local jobid="$1"
-  sacct -j "$jobid" --format="JobID,State,ExitCode" -n | \
+# Get comma-separated task IDs matching a state filter.
+# Usage: get_task_ids <jobid> <filter>
+#   filter: failed, completed, running, pending, all
+get_task_ids() {
+  local jobid="$1" filter="${2:-all}"
+  local state_grep
+
+  case "$filter" in
+    failed)    state_grep='FAILED|TIMEOUT|CANCELLED|NODE_FAIL' ;;
+    completed) state_grep='COMPLETED' ;;
+    running)   state_grep='RUNNING' ;;
+    pending)   state_grep='PENDING' ;;
+    all)       state_grep='.' ;;
+    *)         state_grep="$filter" ;;
+  esac
+
+  sacct -j "$jobid" --format="JobID%20,State%12" -n | \
+    grep -E "${jobid}_[0-9]+" | \
     grep -v '\.' | \
-    grep -E 'FAILED|COMPLETED' | grep -v '0:0' | \
-    grep -oP '(?<=_)\d+(?= )' | \
+    grep -E "$state_grep" | \
+    grep -oP '(?<=_)\d+' | \
     sort -n | uniq | tr '\n' ',' | sed 's/,$//'
 }
+
+# Backward compat alias
+get_failed_task_ids() { get_task_ids "$1" failed; }
 
 sacct_summary() {
   local jobid="$1"

@@ -6,13 +6,13 @@ complete -c slurmctl -f
 # Subcommands
 complete -c slurmctl -n __fish_use_subcommand -a submit      -d 'Submit a .slurm script'
 complete -c slurmctl -n __fish_use_subcommand -a list         -d 'List your running jobs'
-complete -c slurmctl -n __fish_use_subcommand -a status       -d 'Detailed status of current job'
+complete -c slurmctl -n __fish_use_subcommand -a status       -d 'Job status and efficiency'
 complete -c slurmctl -n __fish_use_subcommand -a acct         -d 'Job accounting details'
-complete -c slurmctl -n __fish_use_subcommand -a tasks        -d 'Show status of all array tasks'
-complete -c slurmctl -n __fish_use_subcommand -a running      -d 'Count running/pending/failed'
-complete -c slurmctl -n __fish_use_subcommand -a failed       -d 'List failed array task IDs'
-complete -c slurmctl -n __fish_use_subcommand -a 'failed-list' -d 'Failed tasks with details'
-complete -c slurmctl -n __fish_use_subcommand -a resubmit     -d 'Resubmit failed tasks'
+complete -c slurmctl -n __fish_use_subcommand -a tasks        -d 'Array task management'
+complete -c slurmctl -n __fish_use_subcommand -a running      -d 'Alias: tasks --summary'
+complete -c slurmctl -n __fish_use_subcommand -a failed       -d 'Alias: tasks --failed'
+complete -c slurmctl -n __fish_use_subcommand -a 'failed-list' -d 'Alias: tasks --failed --list'
+complete -c slurmctl -n __fish_use_subcommand -a resubmit     -d 'Alias: tasks --resubmit'
 complete -c slurmctl -n __fish_use_subcommand -a resubmitall  -d 'Resubmit all failed jobs'
 complete -c slurmctl -n __fish_use_subcommand -a tail         -d 'View job output (tail)'
 complete -c slurmctl -n __fish_use_subcommand -a cat          -d 'View job output (cat)'
@@ -22,9 +22,9 @@ complete -c slurmctl -n __fish_use_subcommand -a watch        -d 'Live tail of j
 complete -c slurmctl -n __fish_use_subcommand -a errors       -d 'Recent errors'
 complete -c slurmctl -n __fish_use_subcommand -a cancel       -d 'Cancel current job'
 complete -c slurmctl -n __fish_use_subcommand -a cancelall    -d 'Cancel all project jobs'
-complete -c slurmctl -n __fish_use_subcommand -a nodes        -d 'Node status and resources'
-complete -c slurmctl -n __fish_use_subcommand -a users        -d 'Your jobs by node'
-complete -c slurmctl -n __fish_use_subcommand -a info         -d 'Partition/node info'
+complete -c slurmctl -n __fish_use_subcommand -a info         -d 'Cluster resource overview'
+complete -c slurmctl -n __fish_use_subcommand -a nodes        -d 'Alias: info --list'
+complete -c slurmctl -n __fish_use_subcommand -a jobs         -d 'Your jobs by node'
 complete -c slurmctl -n __fish_use_subcommand -a update       -d 'Refresh job states from sacct'
 complete -c slurmctl -n __fish_use_subcommand -a history      -d 'Show submission history'
 complete -c slurmctl -n __fish_use_subcommand -a pop          -d 'Archive job from active history'
@@ -44,9 +44,23 @@ complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l array -d 'Array 
 complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l output -d 'Override stdout path' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l error -d 'Override stderr path' -x
 
+# status
+complete -c slurmctl -n '__fish_seen_subcommand_from status' -l eff -d 'Resource efficiency'
+complete -c slurmctl -n '__fish_seen_subcommand_from status' -l why -d 'Why is job pending'
+
+# tasks
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l summary -d 'Count by state'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l failed -d 'Failed tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l completed -d 'Completed tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l running -d 'Running tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l pending -d 'Pending tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l list -d 'Detailed view'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l resubmit -d 'Resubmit failed'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l sort -d 'Sort by time|node' -x
+
 # history
-complete -c slurmctl -n '__fish_seen_subcommand_from history' -l all -d 'Show all entries (including archived)'
-complete -c slurmctl -n '__fish_seen_subcommand_from history' -l oneline -d 'One-line compact format'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l all -d 'Include archived'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l oneline -d 'Compact format'
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l script -d 'Show script paths'
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l state -d 'Filter by state' -x
 
@@ -54,19 +68,19 @@ complete -c slurmctl -n '__fish_seen_subcommand_from history' -l state -d 'Filte
 complete -c slurmctl -n '__fish_seen_subcommand_from tail cat head less watch' -l no-out -d 'View only stderr'
 complete -c slurmctl -n '__fish_seen_subcommand_from tail cat head less watch' -l no-err -d 'View only stdout'
 
-# nodes
-complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l partition -s p -d 'Filter by partition' -x
-complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l raw -d 'Raw sinfo output'
-complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l all -d 'Show all nodes'
-
-# users
-complete -c slurmctl -n '__fish_seen_subcommand_from users' -l partition -s p -d 'Filter by partition' -x
-
 # info
-complete -c slurmctl -n '__fish_seen_subcommand_from info' -l raw -d 'Raw output'
+complete -c slurmctl -n '__fish_seen_subcommand_from info' -l partition -s p -d 'Filter by partition' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from info' -l list -s l -d 'Per-node detailed list'
+complete -c slurmctl -n '__fish_seen_subcommand_from info' -l raw -d 'Raw sinfo output'
 
-# acct/tasks/failed-list
-complete -c slurmctl -n '__fish_seen_subcommand_from acct tasks failed-list' -l format -d 'Custom sacct format' -x
+# nodes (alias for info --list)
+complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l partition -s p -d 'Filter by partition' -x
+
+# jobs
+complete -c slurmctl -n '__fish_seen_subcommand_from jobs' -l partition -s p -d 'Filter by partition' -x
+
+# acct
+complete -c slurmctl -n '__fish_seen_subcommand_from acct' -l format -d 'Custom sacct format' -x
 
 # resubmit
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l array -d 'Override array range' -x

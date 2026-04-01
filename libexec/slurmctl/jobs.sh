@@ -1,8 +1,8 @@
 #!/bin/bash
-# users — your jobs and which nodes they're on
-cmd_help "${CYAN}slurmctl users${RESET} — Your jobs per node
+# jobs — your jobs and which nodes they're on
+cmd_help "${CYAN}slurmctl jobs${RESET} — Your jobs per node
 
-${YELLOW}Usage:${RESET}  slurmctl users [-p PARTITION]
+${YELLOW}Usage:${RESET}  slurmctl jobs [-p PARTITION]
 
 Lists your running/pending jobs grouped by node.
 
