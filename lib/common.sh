@@ -9,9 +9,10 @@ if [ -t 1 ]; then
   BLUE=$'\033[0;34m'
   CYAN=$'\033[0;36m'
   BOLD=$'\033[1m'
+  DIM=$'\033[2m'
   RESET=$'\033[0m'
 else
-  RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' RESET=''
+  RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' DIM='' RESET=''
 fi
 
 # Config — single directory for all slurm output, error, and log files

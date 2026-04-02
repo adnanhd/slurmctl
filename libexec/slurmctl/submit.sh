@@ -169,6 +169,10 @@ if $has_gpu && [ -n "$script" ] && [ -z "${SLURMCTL_NO_GPU_MONITOR:-}" ]; then
   source "$SLURMCTL_SRC_DIR/lib/gpu_monitor.sh"
   submit_script=$(gpu_wrap_script "$script" "$SLURMCTL_LOG_DIR")
   printf "${DIM}  gpu monitoring enabled${RESET}\n" >&2
+
+  # GPU wrapper strips --output/--error from directives, so always
+  # pass them as CLI flags to ensure logs go to the right place.
+  sbatch_extra=(-o "$user_out" -e "$user_err")
 fi
 
 # --- Submit ---
