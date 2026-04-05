@@ -1,3 +1,3 @@
 #!/bin/bash
 # nodes — alias for info --list
-exec bash "$SLURMCTL_SRC_DIR/libexec/slurmctl/info.sh" --list "$@"
+source "$SLURMCTL_SRC_DIR/libexec/slurmctl/info.sh" --list "$@"
