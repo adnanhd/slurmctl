@@ -31,7 +31,7 @@ _slurmctl() {
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))
       ;;
     nodes)
-      COMPREPLY=($(compgen -W "--partition --verbose --raw" -- "$cur"))
+      COMPREPLY=($(compgen -W "--partition --verbose --jobs --raw" -- "$cur"))
       ;;
     jobs)
       COMPREPLY=($(compgen -W "--partition" -- "$cur"))

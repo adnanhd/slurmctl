@@ -5,26 +5,31 @@ cmd_help "${CYAN}slurmctl nodes${RESET} — Cluster node status
 ${YELLOW}Usage:${RESET}
   slurmctl nodes [-p PARTITION]              Compact view: nodes grouped by free GPUs
   slurmctl nodes [-p PARTITION] --verbose    Detailed per-node list with summary
+  slurmctl nodes [-p PARTITION] --jobs       Your jobs grouped by node
   slurmctl nodes [-p PARTITION] --raw        Raw sinfo output
 
 ${YELLOW}Options:${RESET}
   -p, --partition PART    Filter to a specific partition
   -v, --verbose, --list   Show per-node detailed list
+  --jobs                  Show your jobs grouped by node
   --raw                   Raw sinfo table
 
 ${YELLOW}Examples:${RESET}
   slurmctl nodes                     Free GPUs grouped by count
   slurmctl nodes -p kolyoz-cuda      Filter to kolyoz-cuda
-  slurmctl nodes --verbose            Per-node status with summary" "$@"
+  slurmctl nodes --verbose            Per-node status with summary
+  slurmctl nodes --jobs               Your jobs by node" "$@"
 
 PARTITION=""
 LIST=false
 RAW=false
+JOBS=false
 while [ $# -gt 0 ]; do
   case "$1" in
     -p|--partition) [ $# -lt 2 ] && { echo "error: --partition requires an argument" >&2; exit 1; }; PARTITION="$2"; shift 2 ;;
     --partition=*)  PARTITION="${1#*=}"; shift ;;
     -v|--verbose|-l|--list) LIST=true; shift ;;
+    --jobs)         JOBS=true; shift ;;
     --raw)          RAW=true; shift ;;
     *) shift ;;
   esac
@@ -37,6 +42,41 @@ if $RAW; then
   printf "${CYAN}Cluster Info:${RESET}\n"
   sinfo "${SINFO_RAW[@]}" | \
     sed "1s/^/$(printf "${YELLOW}")/" | sed "1s/$/$(printf "${RESET}")/"
+  exit 0
+fi
+
+# --- Jobs mode ---
+if $JOBS; then
+  SQUEUE_ARGS=(-u "$USER" -h -o "%i|%t|%P|%N|%j")
+  [ -n "$PARTITION" ] && SQUEUE_ARGS+=(-p "$PARTITION")
+
+  output=$(squeue "${SQUEUE_ARGS[@]}" 2>/dev/null)
+  if [ -z "$output" ]; then
+    printf "${YELLOW}No jobs in queue${RESET}\n"
+    exit 0
+  fi
+
+  printf "${CYAN}Your jobs by node:${RESET}\n"
+  echo "$output" | awk -F'|' -v g="$GREEN" -v y="$YELLOW" -v b="$BLUE" -v r="$RESET" -v c="$CYAN" '
+  {
+    for (f = 1; f <= NF; f++) { gsub(/^ +| +$/, "", $f) }
+    jobid=$1; state=$2; part=$3; node=$4; name=$5
+    if (state == "R") sc = g "R" r
+    else if (state == "PD") sc = b "PD" r
+    else sc = y state r
+    if (node == "" || node == "(None)") node = "(pending)"
+    key = node
+    if (!(key in nodes)) { order[++n] = key }
+    nodes[key] = nodes[key] sprintf("    %s%-10s%s %s %-14s %s%s%s\n", c, jobid, r, sc, part, y, name, r)
+    counts[key]++
+  }
+  END {
+    for (i = 1; i <= n; i++) {
+      k = order[i]
+      printf "  %s%s%s (%d job%s)\n", g, k, r, counts[k], (counts[k]==1?"":"s")
+      printf "%s", nodes[k]
+    }
+  }'
   exit 0
 fi
 
