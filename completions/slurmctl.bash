@@ -31,7 +31,13 @@ _slurmctl() {
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))
       ;;
     nodes)
-      COMPREPLY=($(compgen -W "--partition --verbose --jobs --raw" -- "$cur"))
+      if [[ "$prev" == "=" ]] && [[ "${words[*]}" == *--group-by* ]]; then
+        COMPREPLY=($(compgen -W "gpu cpu mem job" -- "$cur"))
+      elif [[ "$prev" == "--group-by" ]]; then
+        COMPREPLY=($(compgen -W "gpu cpu mem job" -- "$cur"))
+      else
+        COMPREPLY=($(compgen -W "--partition --verbose --group-by" -- "$cur"))
+      fi
       ;;
     jobs)
       COMPREPLY=($(compgen -W "--partition" -- "$cur"))

@@ -71,9 +71,8 @@ complete -c slurmctl -n '__fish_seen_subcommand_from info' -l raw -d 'Raw sinfo 
 
 # nodes
 complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l partition -s p -d 'Filter by partition' -x
-complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l verbose -s v -d 'Per-node detailed list'
-complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l jobs -d 'Your jobs grouped by node'
-complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l raw -d 'Raw sinfo output'
+complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l verbose -s v -d 'Detailed view'
+complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l group-by -d 'Group mode (gpu, cpu, mem, job)' -xa 'gpu cpu mem job'
 
 # jobs
 complete -c slurmctl -n '__fish_seen_subcommand_from jobs' -l partition -s p -d 'Filter by partition' -x

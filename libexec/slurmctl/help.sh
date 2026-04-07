@@ -1,7 +1,7 @@
 #!/bin/bash
 # help — show usage
 
-SCRIPTS=$(cd "$SLURMCTL_PROJECT_ROOT" && ls *.slurm 2>/dev/null | sed 's/\.slurm$//' | tr '\n' ' ' || true)
+SCRIPTS=$(cd "$SLURMCTL_PROJECT_ROOT" && find . -type f -name '*.slurm' -not -path '*/.*' 2>/dev/null | sed 's|^\./||' | sort || true)
 
 cat <<EOF
 
@@ -45,10 +45,13 @@ ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancelall${RESET}               Cancel all active project jobs
 
 ${YELLOW}Cluster Info:${RESET}
-  slurmctl ${GREEN}nodes${RESET} [-p PART]          Free GPUs grouped by count (compact)
-  slurmctl ${GREEN}nodes${RESET} --verbose          Per-node detailed list with summary
-  slurmctl ${GREEN}nodes${RESET} --raw              Raw sinfo table
-  slurmctl ${GREEN}jobs${RESET} [-p PART]            Your jobs grouped by node
+  slurmctl ${GREEN}nodes${RESET} [-p PART]                   Per-node one-liner (sinfo)
+  slurmctl ${GREEN}nodes${RESET} -v                          Per-node with CPU/GPU detail
+  slurmctl ${GREEN}nodes${RESET} --group-by=gpu              Nodes grouped by free GPU count
+  slurmctl ${GREEN}nodes${RESET} --group-by=cpu              Nodes grouped by idle CPU count
+  slurmctl ${GREEN}nodes${RESET} --group-by=mem              Nodes grouped by total memory
+  slurmctl ${GREEN}nodes${RESET} --group-by=job              Your jobs grouped by node
+  Any --group-by mode supports ${GREEN}-v${RESET} for per-node detail within each group.
 
 ${YELLOW}History:${RESET}
   slurmctl ${GREEN}update${RESET}                  Refresh job states from sacct
@@ -73,5 +76,22 @@ ${YELLOW}Examples:${RESET}
   slurmctl -j 12345 tasks                         Check specific job's tasks
   slurmctl tasks --resubmit                       Resubmit failed tasks
 
-${YELLOW}Available Scripts:${RESET} ${SCRIPTS:-none}
+${YELLOW}Available Scripts:${RESET}
 EOF
+
+if [ -z "$SCRIPTS" ]; then
+  echo "  (none)"
+else
+  echo "$SCRIPTS" | awk -F/ '
+  {
+    dir = ""
+    for (i = 1; i < NF; i++) dir = (dir ? dir "/" : "") $i
+    file = $NF
+    if (dir != prev_dir) {
+      if (prev_dir != "") printf "\n"
+      printf "  ./%s/\n", dir
+      prev_dir = dir
+    }
+    printf "    %s\n", file
+  }'
+fi
