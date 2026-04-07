@@ -52,13 +52,13 @@ _slurmctl() {
       COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending --verbose --sort -j --job" -- "$cur"))
       ;;
     resubmit)
-      COMPREPLY=($(compgen -W "--failed --all -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--failed --all --node -n --partition -p -j --job" -- "$cur"))
       ;;
     acct)
       COMPREPLY=($(compgen -W "--format -j --job" -- "$cur"))
       ;;
     cancel)
-      COMPREPLY=($(compgen -W "--all --node --partition -p -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--all --node -n --partition -p -j --job" -- "$cur"))
       ;;
     *)
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))

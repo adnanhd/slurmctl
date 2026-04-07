@@ -10,7 +10,7 @@ ${YELLOW}Usage:${RESET}
 
 ${YELLOW}Options:${RESET}
   --all                   Cancel all active project jobs from history
-  --node=NODE             Cancel jobs running on NODE
+  -n, --node=NODE         Cancel jobs running on NODE
   -p, --partition PART    Cancel jobs in PARTITION
 
 ${YELLOW}Examples:${RESET}
@@ -26,8 +26,8 @@ CANCEL_PARTITION=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --all)        CANCEL_ALL=true; shift ;;
-    --node=*)     CANCEL_NODE="${1#*=}"; shift ;;
-    --node)       [ $# -lt 2 ] && { echo "error: --node requires an argument" >&2; exit 1; }; CANCEL_NODE="$2"; shift 2 ;;
+    --node=*)      CANCEL_NODE="${1#*=}"; shift ;;
+    -n|--node)    [ $# -lt 2 ] && { echo "error: --node requires an argument" >&2; exit 1; }; CANCEL_NODE="$2"; shift 2 ;;
     -p|--partition) [ $# -lt 2 ] && { echo "error: --partition requires an argument" >&2; exit 1; }; CANCEL_PARTITION="$2"; shift 2 ;;
     --partition=*) CANCEL_PARTITION="${1#*=}"; shift ;;
     *) break ;;

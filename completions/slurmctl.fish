@@ -54,6 +54,8 @@ complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l verbose -s v -d '
 # resubmit
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l failed -d 'Resubmit failed tasks (default)'
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l all -d 'Resubmit all failed jobs from history'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l partition -s p -d 'Filter by partition' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l node -s n -d 'Filter by node' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l sort -d 'Sort by time|node' -x
 
 # history
@@ -64,7 +66,7 @@ complete -c slurmctl -n '__fish_seen_subcommand_from history' -l state -d 'Filte
 
 # cancel
 complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l all -d 'Cancel all project jobs'
-complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l node -d 'Cancel jobs on node' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l node -s n -d 'Cancel jobs on node' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l partition -s p -d 'Cancel jobs on partition' -x
 
 # tail/cat/head/less/watch

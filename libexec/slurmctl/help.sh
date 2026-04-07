@@ -12,8 +12,6 @@ ${YELLOW}Job Submitting:${RESET}
   slurmctl ${GREEN}submit${RESET} <script>.slurm [sbatch args...]
   slurmctl ${GREEN}submit${RESET} --wrap="<cmd>" [sbatch args...]
   slurmctl ${GREEN}submit${RESET} --after <jobid> <script>.slurm
-  slurmctl ${GREEN}resubmit${RESET}                Resubmit failed tasks of current job
-  slurmctl ${GREEN}resubmit${RESET} --all           Resubmit all failed jobs from history
 
 ${YELLOW}Job Listing:${RESET}
   slurmctl ${GREEN}list${RESET}                    List your running jobs (squeue)
@@ -27,8 +25,12 @@ ${YELLOW}Job Listing:${RESET}
 ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancel${RESET}                  Cancel current job
   slurmctl ${GREEN}cancel${RESET} --all             Cancel all active project jobs
-  slurmctl ${GREEN}cancel${RESET} --node=NODE       Cancel your jobs on a specific node
-  slurmctl ${GREEN}cancel${RESET} -p PARTITION      Cancel your jobs on a partition
+  slurmctl ${GREEN}cancel${RESET} --node=NODE       Cancel jobs on a specific node
+  slurmctl ${GREEN}cancel${RESET} -p PARTITION      Cancel jobs on a partition
+  slurmctl ${GREEN}resubmit${RESET}                Resubmit failed tasks of current job
+  slurmctl ${GREEN}resubmit${RESET} --all           Resubmit all failed jobs from history
+  slurmctl ${GREEN}resubmit${RESET} --all -p PART   Resubmit failed jobs on a partition
+  slurmctl ${GREEN}resubmit${RESET} --all --node=N  Resubmit failed jobs on a node
 
 ${YELLOW}Output Viewing:${RESET}
   slurmctl ${GREEN}tail${RESET} [ARGS...]           Tail stdout + stderr (pass args to tail)
