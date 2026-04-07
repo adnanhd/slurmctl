@@ -126,10 +126,30 @@ if $EFF; then
   exit 0
 fi
 
-# --- Default: basic job status from scontrol ---
-JOB_NAME=$(squeue --job "$JOBID" -o %j 2>/dev/null | tail -1)
+# --- Default: basic job status from scontrol, fallback to sacct ---
+JOB_INFO=$(scontrol show job "$JOBID" 2>/dev/null || true)
 
-printf "${CYAN}Job %s:${RESET} %s\n" "$JOBID" "$JOB_NAME"
-scontrol show job "$JOBID" 2>/dev/null | \
-  grep -E "JobState=|Reason=|RunTime=|TimeLimit=|NumCPUs=|MinMemory|NodeList=" | \
-  sed 's/^/  /'
+if [ -n "$JOB_INFO" ]; then
+  JOB_NAME=$(squeue --job "$JOBID" -o %j -h 2>/dev/null | head -1)
+  printf "${CYAN}Job %s:${RESET} %s\n" "$JOBID" "$JOB_NAME"
+  # For array jobs, scontrol dumps all sub-jobs. Show the first task only.
+  echo "$JOB_INFO" | head -30 | \
+    grep -E "JobState=|Reason=|RunTime=|TimeLimit=|NumCPUs=|MinMemory|NodeList=" | \
+    head -7 | sed 's/^/     /'
+else
+  # Job no longer in scontrol — use sacct
+  sacct_line=$(sacct -j "$JOBID" --format=JobID%20,JobName%30,State%12,Elapsed,ExitCode,Start,End,NodeList%20,AllocCPUS,ReqMem -n -P 2>/dev/null \
+    | grep "^${JOBID}|" | head -1)
+  if [ -z "$sacct_line" ]; then
+    printf "${RED}Job %s: not found in scontrol or sacct${RESET}\n" "$JOBID" >&2
+    exit 1
+  fi
+  IFS='|' read -r _id name state elapsed exitcode start end nodes cpus mem <<< "$sacct_line"
+  printf "${CYAN}Job %s:${RESET} %s\n" "$JOBID" "$name"
+  printf "     JobState=%s Reason=None Dependency=(null)\n" "$state"
+  printf "     RunTime=%s TimeLimit=N/A TimeMin=N/A\n" "$elapsed"
+  printf "     ReqNodeList=(null) ExcNodeList=(null)\n"
+  printf "     NodeList=%s\n" "$nodes"
+  printf "     NumNodes=N/A NumCPUs=%s NumTasks=N/A CPUs/Task=%s ReqB:S:C:T=0:0:*:*\n" "$cpus" "$cpus"
+  printf "     MinCPUsNode=%s MinMemoryNode=%s MinTmpDiskNode=0\n" "$cpus" "$mem"
+fi
