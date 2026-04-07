@@ -18,8 +18,12 @@ ${YELLOW}Job Listing:${RESET}
   slurmctl ${GREEN}list${RESET} --summary          Task/step count by state
   slurmctl ${GREEN}list${RESET} --failed            Failed task IDs (comma-separated)
   slurmctl ${GREEN}list${RESET} --failed -v         Failed tasks with details
-  slurmctl ${GREEN}status${RESET}                  Detailed job status + resource usage
-  slurmctl ${GREEN}acct${RESET}                    Accounting details (sacct)
+
+${YELLOW}Job Status:${RESET}
+  slurmctl ${GREEN}status${RESET}                  Job state, runtime, resources
+  slurmctl ${GREEN}status${RESET} --acct            Accounting details (sacct)
+  slurmctl ${GREEN}status${RESET} --eff             Resource efficiency (CPU, memory, GPU)
+  slurmctl ${GREEN}status${RESET} --why             Why is this job pending?
 
 ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancel${RESET}                  Cancel current job

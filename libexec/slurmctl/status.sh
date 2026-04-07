@@ -1,40 +1,72 @@
 #!/bin/bash
 # status — detailed job status
-cmd_help "${CYAN}slurmctl status${RESET} — Detailed job status and resource efficiency
+cmd_help "${CYAN}slurmctl status${RESET} — Detailed job status
 
 ${YELLOW}Usage:${RESET}
-  slurmctl status [-j JOBID]         Job state, runtime, resources
-  slurmctl status [-j JOBID] --eff   Resource efficiency (avg/max CPU, memory, GPU across tasks)
-  slurmctl status [-j JOBID] --why   Why is this job pending?
+  slurmctl status [-j JOBID]           Job state, runtime, resources
+  slurmctl status [-j JOBID] --acct    Accounting details (sacct)
+  slurmctl status [-j JOBID] --eff     Resource efficiency (CPU, memory, GPU)
+  slurmctl status [-j JOBID] --why     Why is this job pending?
 
-${YELLOW}Examples:${RESET}
-  slurmctl status                 Current job status
-  slurmctl status --eff           Resource efficiency for array job
-  slurmctl status --why 1175620   Why is this job pending?" "$@"
+${YELLOW}Options:${RESET}
+  --acct                Show sacct accounting details
+  --eff                 Show resource efficiency (avg/max CPU, memory, GPU)
+  --why                 Show reason for pending state
+
+Works for array jobs, single jobs, and --wrap jobs." "$@"
 
 EFF=false
 WHY=false
+ACCT=false
 while [ $# -gt 0 ]; do
   case "$1" in
     --eff)  EFF=true; shift ;;
     --why)  WHY=true; shift ;;
+    --acct) ACCT=true; shift ;;
     *) break ;;
   esac
 done
 
 JOBID=$(require_jobid)
 
+# Detect if job is array
+_is_array() {
+  sacct -j "$1" --format=JobID -n -P 2>/dev/null | grep -q "${1}_[0-9]"
+}
+
 # --- Why pending ---
 if $WHY; then
-  reason=$(scontrol show job "$JOBID" 2>/dev/null | grep -oP 'Reason=\K.*')
-  state=$(scontrol show job "$JOBID" 2>/dev/null | grep -oP 'JobState=\K\S+')
-  name=$(scontrol show job "$JOBID" 2>/dev/null | grep -oP 'JobName=\K\S+')
+  info=$(scontrol show job "$JOBID" 2>/dev/null || true)
+  if [ -z "$info" ]; then
+    printf "Job %s: no longer in queue (already completed/failed)\n" "$JOBID"
+    exit 0
+  fi
+  reason=$(echo "$info" | grep -oP 'Reason=\K.*' | head -1)
+  state=$(echo "$info" | grep -oP 'JobState=\K\S+' | head -1)
+  name=$(echo "$info" | grep -oP 'JobName=\K\S+' | head -1)
   if [ "$state" != "PENDING" ]; then
     printf "Job %s (%s): %s (not pending)\n" "$JOBID" "$name" "$state"
   else
-    dep=$(scontrol show job "$JOBID" 2>/dev/null | grep -oP 'Dependency=\K\S+')
+    dep=$(echo "$info" | grep -oP 'Dependency=\K\S+' | head -1)
     printf "Job %s (%s): ${YELLOW}%s${RESET}\n" "$JOBID" "$name" "$reason"
-    [ -n "$dep" ] && printf "  Dependency: %s\n" "$dep"
+    [ -n "$dep" ] && [ "$dep" != "(null)" ] && printf "  Dependency: %s\n" "$dep"
+  fi
+  exit 0
+fi
+
+# --- Accounting details ---
+if $ACCT; then
+  printf "${CYAN}Accounting for %s:${RESET}\n" "$JOBID"
+  if _is_array "$JOBID"; then
+    sacct -j "$JOBID" --format="JobID%20,State%12,ExitCode,Elapsed,MaxRSS,NodeList%15" -n | \
+      grep -E "${JOBID}_[0-9]+ " | grep -v '\.' | \
+      sed "s/COMPLETED/$(printf "${GREEN}COMPLETED${RESET}")/g" | \
+      sed "s/FAILED/$(printf "${RED}FAILED${RESET}")/g" | \
+      sed "s/RUNNING/$(printf "${YELLOW}RUNNING${RESET}")/g" | \
+      sed "s/PENDING/$(printf "${BLUE}PENDING${RESET}")/g" | \
+      sed "s/TIMEOUT/$(printf "${RED}TIMEOUT${RESET}")/g"
+  else
+    sacct -j "$JOBID" --format="JobID%20,JobName%20,State%12,ExitCode,Elapsed,MaxRSS,NodeList%15"
   fi
   exit 0
 fi
@@ -126,18 +158,34 @@ if $EFF; then
   exit 0
 fi
 
-# --- Default: basic job status from scontrol, fallback to sacct ---
+# --- Default: job status ---
+# Try scontrol first (running/pending jobs), fallback to sacct (completed)
 JOB_INFO=$(scontrol show job "$JOBID" 2>/dev/null || true)
 
 if [ -n "$JOB_INFO" ]; then
   JOB_NAME=$(squeue --job "$JOBID" -o %j -h 2>/dev/null | head -1)
   printf "${CYAN}Job %s:${RESET} %s\n" "$JOBID" "$JOB_NAME"
-  # For array jobs, scontrol dumps all sub-jobs. Show the first task only.
-  echo "$JOB_INFO" | head -30 | \
-    grep -E "JobState=|Reason=|RunTime=|TimeLimit=|NumCPUs=|MinMemory|NodeList=" | \
-    head -7 | sed 's/^/     /'
+
+  if _is_array "$JOBID"; then
+    # Array job: show summary + first task info
+    line=$(sacct_summary "$JOBID" 2>/dev/null || true)
+    if [ -n "$line" ]; then
+      eval "$line"
+      printf "  ${GREEN}Completed:${RESET} %d  ${YELLOW}Running:${RESET} %d  ${BLUE}Pending:${RESET} %d  ${RED}Failed:${RESET} %d\n" \
+        "$completed" "$running" "$pending" "$failed"
+    fi
+    # Show first running task's info
+    echo "$JOB_INFO" | head -15 | \
+      grep -E "JobState=|RunTime=|TimeLimit=|NumCPUs=|MinMemory|NodeList=" | \
+      head -6 | sed 's/^/  /'
+  else
+    # Single/wrap job
+    echo "$JOB_INFO" | \
+      grep -E "JobState=|Reason=|RunTime=|TimeLimit=|NumCPUs=|MinMemory|NodeList=" | \
+      head -7 | sed 's/^/  /'
+  fi
 else
-  # Job no longer in scontrol — use sacct
+  # Completed job — use sacct
   sacct_line=$(sacct -j "$JOBID" --format=JobID%20,JobName%30,State%12,Elapsed,ExitCode,Start,End,NodeList%20,AllocCPUS,ReqMem -n -P 2>/dev/null \
     | grep "^${JOBID}|" | head -1)
   if [ -z "$sacct_line" ]; then
@@ -146,10 +194,17 @@ else
   fi
   IFS='|' read -r _id name state elapsed exitcode start end nodes cpus mem <<< "$sacct_line"
   printf "${CYAN}Job %s:${RESET} %s\n" "$JOBID" "$name"
-  printf "     JobState=%s Reason=None Dependency=(null)\n" "$state"
-  printf "     RunTime=%s TimeLimit=N/A TimeMin=N/A\n" "$elapsed"
-  printf "     ReqNodeList=(null) ExcNodeList=(null)\n"
-  printf "     NodeList=%s\n" "$nodes"
-  printf "     NumNodes=N/A NumCPUs=%s NumTasks=N/A CPUs/Task=%s ReqB:S:C:T=0:0:*:*\n" "$cpus" "$cpus"
-  printf "     MinCPUsNode=%s MinMemoryNode=%s MinTmpDiskNode=0\n" "$cpus" "$mem"
+
+  if _is_array "$JOBID"; then
+    line=$(sacct_summary "$JOBID" 2>/dev/null || true)
+    if [ -n "$line" ]; then
+      eval "$line"
+      printf "  ${GREEN}Completed:${RESET} %d  ${YELLOW}Running:${RESET} %d  ${BLUE}Pending:${RESET} %d  ${RED}Failed:${RESET} %d\n" \
+        "$completed" "$running" "$pending" "$failed"
+    fi
+  fi
+
+  printf "  State: %s  Exit: %s  Elapsed: %s\n" "$state" "$exitcode" "$elapsed"
+  printf "  Node: %s  CPUs: %s  Memory: %s\n" "$nodes" "$cpus" "$mem"
+  printf "  Start: %s  End: %s\n" "$start" "$end"
 fi

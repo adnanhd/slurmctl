@@ -7,7 +7,6 @@ complete -c slurmctl -f
 complete -c slurmctl -n __fish_use_subcommand -a submit      -d 'Submit a .slurm script'
 complete -c slurmctl -n __fish_use_subcommand -a list         -d 'List jobs and tasks'
 complete -c slurmctl -n __fish_use_subcommand -a status       -d 'Job status and efficiency'
-complete -c slurmctl -n __fish_use_subcommand -a acct         -d 'Job accounting details'
 complete -c slurmctl -n __fish_use_subcommand -a resubmit     -d 'Resubmit failed tasks or jobs'
 complete -c slurmctl -n __fish_use_subcommand -a tail         -d 'View job output (tail)'
 complete -c slurmctl -n __fish_use_subcommand -a cat          -d 'View job output (cat)'
@@ -39,6 +38,7 @@ complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l output -d 'Overr
 complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l error -d 'Override stderr path' -x
 
 # status
+complete -c slurmctl -n '__fish_seen_subcommand_from status' -l acct -d 'Accounting details (sacct)'
 complete -c slurmctl -n '__fish_seen_subcommand_from status' -l eff -d 'Resource efficiency'
 complete -c slurmctl -n '__fish_seen_subcommand_from status' -l why -d 'Why is job pending'
 
