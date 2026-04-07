@@ -45,9 +45,10 @@ ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancelall${RESET}               Cancel all active project jobs
 
 ${YELLOW}Cluster Info:${RESET}
-  slurmctl ${GREEN}nodes${RESET} [-p PART]          Node status and resource usage
-  slurmctl ${GREEN}nodes${RESET} --raw             Raw sinfo table (alias: info)
-  slurmctl ${GREEN}users${RESET} [-p PART]          Your jobs grouped by node
+  slurmctl ${GREEN}nodes${RESET} [-p PART]          Free GPUs grouped by count (compact)
+  slurmctl ${GREEN}nodes${RESET} --verbose          Per-node detailed list with summary
+  slurmctl ${GREEN}nodes${RESET} --raw              Raw sinfo table
+  slurmctl ${GREEN}jobs${RESET} [-p PART]            Your jobs grouped by node
 
 ${YELLOW}History:${RESET}
   slurmctl ${GREEN}update${RESET}                  Refresh job states from sacct

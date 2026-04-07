@@ -69,8 +69,10 @@ complete -c slurmctl -n '__fish_seen_subcommand_from info' -l partition -s p -d 
 complete -c slurmctl -n '__fish_seen_subcommand_from info' -l list -s l -d 'Per-node detailed list'
 complete -c slurmctl -n '__fish_seen_subcommand_from info' -l raw -d 'Raw sinfo output'
 
-# nodes (alias for info --list)
+# nodes
 complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l partition -s p -d 'Filter by partition' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l verbose -s v -d 'Per-node detailed list'
+complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l raw -d 'Raw sinfo output'
 
 # jobs
 complete -c slurmctl -n '__fish_seen_subcommand_from jobs' -l partition -s p -d 'Filter by partition' -x

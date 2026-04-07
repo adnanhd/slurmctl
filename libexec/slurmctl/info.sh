@@ -1,21 +1,21 @@
 #!/bin/bash
 # info — cluster resource overview
-cmd_help "${CYAN}slurmctl info${RESET} — Cluster resource overview
+cmd_help "${CYAN}slurmctl nodes${RESET} — Cluster node status
 
 ${YELLOW}Usage:${RESET}
-  slurmctl info [-p PARTITION]          Compact view: nodes grouped by free GPUs
-  slurmctl info [-p PARTITION] --list   Detailed per-node list with summary
-  slurmctl info [-p PARTITION] --raw    Raw sinfo output
+  slurmctl nodes [-p PARTITION]              Compact view: nodes grouped by free GPUs
+  slurmctl nodes [-p PARTITION] --verbose    Detailed per-node list with summary
+  slurmctl nodes [-p PARTITION] --raw        Raw sinfo output
 
 ${YELLOW}Options:${RESET}
-  -p, --partition PART  Filter to a specific partition
-  --list, -l            Show per-node detailed list
-  --raw                 Raw sinfo table
+  -p, --partition PART    Filter to a specific partition
+  -v, --verbose, --list   Show per-node detailed list
+  --raw                   Raw sinfo table
 
 ${YELLOW}Examples:${RESET}
-  slurmctl info                    Free GPUs grouped by count
-  slurmctl info -p kolyoz-cuda     Filter to kolyoz-cuda
-  slurmctl info --list              Per-node status with summary" "$@"
+  slurmctl nodes                     Free GPUs grouped by count
+  slurmctl nodes -p kolyoz-cuda      Filter to kolyoz-cuda
+  slurmctl nodes --verbose            Per-node status with summary" "$@"
 
 PARTITION=""
 LIST=false
@@ -24,7 +24,7 @@ while [ $# -gt 0 ]; do
   case "$1" in
     -p|--partition) [ $# -lt 2 ] && { echo "error: --partition requires an argument" >&2; exit 1; }; PARTITION="$2"; shift 2 ;;
     --partition=*)  PARTITION="${1#*=}"; shift ;;
-    -l|--list)      LIST=true; shift ;;
+    -v|--verbose|-l|--list) LIST=true; shift ;;
     --raw)          RAW=true; shift ;;
     *) shift ;;
   esac
