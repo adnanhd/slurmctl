@@ -1,7 +1,9 @@
 #!/bin/bash
 # help — show usage
 
-SCRIPTS=$(find . -type f -name '*.slurm' -not -path '*/.*' 2>/dev/null | sed 's|^\./||' | sort || true)
+# Bold escape for options
+B=$(printf '\033[1m')
+R=$(printf '\033[0m')
 
 cat <<EOF
 
@@ -9,88 +11,81 @@ ${CYAN}slurmctl${RESET} — SLURM Job Management
 ===============================================================================
 
 ${YELLOW}Global Flags:${RESET}
-  -j, --job JOBID         Target a specific job (overrides auto-detection)
+  ${B}-j${R}, ${B}--job${R} JOBID         Target a specific job (overrides auto-detection)
 
 ${YELLOW}Job Submitting:${RESET}
-
-  ${GREEN}submit${RESET} <script> [--after JOBID] [--wrap="<cmd>"] [--array=RANGE] [sbatch args...]
+  ${GREEN}submit${RESET} <script> [${B}--after${R} JOBID] [${B}--wrap${R}="<cmd>"] [${B}--array${R}=RANGE] [sbatch args...]
     Submit a job and track in history. Git metadata captured automatically.
-    --after JOBID           Run after JOBID completes (afterok dependency)
-    --wrap="<cmd>"          Submit an inline command (no script file needed)
-    --array=RANGE           Submit as array job (e.g. 0-99%8)
+    ${B}--after${R} JOBID           Run after JOBID completes (afterok dependency)
+    ${B}--wrap${R}="<cmd>"          Submit an inline command (no script file needed)
+    ${B}--array${R}=RANGE           Submit as array job (e.g. 0-99%8)
     Any extra flags are passed directly to sbatch.
 
 ${YELLOW}Job Listing:${RESET}
-
-  ${GREEN}list${RESET} [-j JOBID] [--summary] [--failed|--completed|--running|--pending] [-v] [--sort time|node]
+  ${GREEN}list${RESET} [${B}-j${R} JOBID] [${B}--summary${R}] [${B}--failed${R}|${B}--completed${R}|${B}--running${R}|${B}--pending${R}] [${B}-v${R}] [${B}--sort${R} time|node]
     Without filters: your running/pending jobs (squeue).
     With filters: task/step breakdown for a job (sacct). Works for array, single, and wrap jobs.
-    --summary               Count tasks by state
-    --failed                Failed task IDs (comma-separated)
-    --completed             Completed task IDs
-    --running               Running task IDs
-    --pending               Pending task IDs
-    -v, --verbose           Detailed view with exit codes and nodes
-    --sort time|node        Sort order for detailed view
+    ${B}--summary${R}               Count tasks by state
+    ${B}--failed${R}                Failed task IDs (comma-separated)
+    ${B}--completed${R}             Completed task IDs
+    ${B}--running${R}               Running task IDs
+    ${B}--pending${R}               Pending task IDs
+    ${B}-v${R}, ${B}--verbose${R}           Detailed view with exit codes and nodes
+    ${B}--sort${R} time|node        Sort order for detailed view
 
 ${YELLOW}Job Status:${RESET}
-
-  ${GREEN}status${RESET} [-j JOBID] [--acct] [--eff] [--why]
+  ${GREEN}status${RESET} [${B}-j${R} JOBID] [${B}--acct${R}] [${B}--eff${R}] [${B}--why${R}]
     Deep inspection of a single job. Auto-detects array/single/wrap.
     (default)               Job state, runtime, resources (+ array summary)
-    --acct                  Accounting details from sacct
-    --eff                   Resource efficiency (avg/max CPU, memory, GPU)
-    --why                   Why is this job pending?
+    ${B}--acct${R}                  Accounting details from sacct
+    ${B}--eff${R}                   Resource efficiency (avg/max CPU, memory, GPU)
+    ${B}--why${R}                   Why is this job pending?
 
 ${YELLOW}Job Control:${RESET}
-
-  ${GREEN}cancel${RESET} [-j JOBID] [--all] [-n NODE] [-p PARTITION]
+  ${GREEN}cancel${RESET} [${B}-j${R} JOBID] [${B}--all${R}] [${B}-n${R} NODE] [${B}-p${R} PARTITION]
     Cancel jobs. Without flags: cancel current/specified job.
-    --all                   Cancel all active project jobs from history
-    -n, --node NODE         Cancel your jobs on NODE
-    -p, --partition PART    Cancel your jobs on PARTITION
+    ${B}--all${R}                   Cancel all active project jobs from history
+    ${B}-n${R}, ${B}--node${R} NODE         Cancel your jobs on NODE
+    ${B}-p${R}, ${B}--partition${R} PART    Cancel your jobs on PARTITION
 
-  ${GREEN}resubmit${RESET} [-j JOBID] [--all] [-n NODE] [-p PARTITION]
+  ${GREEN}resubmit${RESET} [${B}-j${R} JOBID] [${B}--all${R}] [${B}-n${R} NODE] [${B}-p${R} PARTITION]
     Resubmit failed tasks. Without flags: resubmit failed tasks of current job.
-    --failed                Resubmit failed tasks (default, explicit)
-    --all                   Resubmit all failed jobs from history
-    -n, --node NODE         Filter to jobs that ran on NODE
-    -p, --partition PART    Filter to jobs on PARTITION
+    ${B}--failed${R}                Resubmit failed tasks (default, explicit)
+    ${B}--all${R}                   Resubmit all failed jobs from history
+    ${B}-n${R}, ${B}--node${R} NODE         Filter to jobs that ran on NODE
+    ${B}-p${R}, ${B}--partition${R} PART    Filter to jobs on PARTITION
 
 ${YELLOW}Output Viewing:${RESET}
-
-  ${GREEN}tail${RESET} [-j JOBID] [--no-out] [--no-err] [tail args...]
-  ${GREEN}cat${RESET}  [-j JOBID] [--no-out] [--no-err]
-  ${GREEN}head${RESET} [-j JOBID] [--no-out] [--no-err] [head args...]
-  ${GREEN}less${RESET} [-j JOBID] [--no-out] [--no-err]
-  ${GREEN}watch${RESET} [-j JOBID]
+  ${GREEN}tail${RESET} [${B}-j${R} JOBID] [${B}--no-out${R}] [${B}--no-err${R}] [tail args...]
+  ${GREEN}cat${RESET}  [${B}-j${R} JOBID] [${B}--no-out${R}] [${B}--no-err${R}]
+  ${GREEN}head${RESET} [${B}-j${R} JOBID] [${B}--no-out${R}] [${B}--no-err${R}] [head args...]
+  ${GREEN}less${RESET} [${B}-j${R} JOBID] [${B}--no-out${R}] [${B}--no-err${R}]
+  ${GREEN}watch${RESET} [${B}-j${R} JOBID]
   ${GREEN}errors${RESET}
     View job stdout/stderr. Defaults to current job.
-    --no-out                Show only stderr
-    --no-err                Show only stdout
+    ${B}--no-out${R}                Show only stderr
+    ${B}--no-err${R}                Show only stdout
 
 ${YELLOW}Cluster Info:${RESET}
-
-  ${GREEN}nodes${RESET} [-p PARTITION] [-v] [--group-by=MODE]
+  ${GREEN}nodes${RESET} [${B}-p${R} PARTITION] [${B}-v${R}] [${B}--group-by${R}=MODE]
     Cluster node status. Without --group-by: flat node list.
-    -v, --verbose           Detailed view with CPU/GPU/state per node
-    -p, --partition PART    Filter to PARTITION
-    --group-by=MODE         Group output:
-      gpu                   Nodes grouped by free GPU count
-      cpu                   Nodes grouped by idle CPU count
-      mem                   Nodes grouped by total memory (GiB)
-      job                   Your jobs grouped by node
-    All modes support -v for per-node detail within each group.
+    ${B}-v${R}, ${B}--verbose${R}           Detailed view with CPU/GPU/state per node
+    ${B}-p${R}, ${B}--partition${R} PART    Filter to PARTITION
+    ${B}--group-by${R}=MODE         Group output:
+      ${B}gpu${R}                   Nodes grouped by free GPU count
+      ${B}cpu${R}                   Nodes grouped by idle CPU count
+      ${B}mem${R}                   Nodes grouped by total memory (GiB)
+      ${B}job${R}                   Your jobs grouped by node
+    All modes support ${B}-v${R} for per-node detail within each group.
 
 ${YELLOW}History:${RESET}
-
-  ${GREEN}history${RESET} [-n N] [--all] [--oneline] [--script] [--state STATE]
+  ${GREEN}history${RESET} [${B}-n${R} N] [${B}--all${R}] [${B}--oneline${R}] [${B}--script${R}] [${B}--state${R} STATE]
     Show submission history (newest first).
-    -n N                    Show last N entries
-    --all                   Include archived entries
-    --oneline               Compact one-line format
-    --script                Show script paths
-    --state STATE           Filter by state
+    ${B}-n${R} N                    Show last N entries
+    ${B}--all${R}                   Include archived entries
+    ${B}--oneline${R}               Compact one-line format
+    ${B}--script${R}                Show script paths
+    ${B}--state${R} STATE           Filter by state
 
   ${GREEN}update${RESET}                  Refresh job states from sacct
   ${GREEN}pop${RESET}                     Archive current job from active history
@@ -99,23 +94,4 @@ ${YELLOW}History:${RESET}
 
 ${YELLOW}Other:${RESET}
   ${GREEN}health${RESET}                  Version, install path, project, cluster status
-
-${YELLOW}Available Scripts:${RESET}
 EOF
-
-if [ -z "$SCRIPTS" ]; then
-  echo "  (none)"
-else
-  echo "$SCRIPTS" | awk -F/ '
-  {
-    dir = ""
-    for (i = 1; i < NF; i++) dir = (dir ? dir "/" : "") $i
-    file = $NF
-    if (dir != prev_dir) {
-      if (prev_dir != "") printf "\n"
-      printf "  ./%s/\n", dir
-      prev_dir = dir
-    }
-    printf "    %s\n", file
-  }'
-fi

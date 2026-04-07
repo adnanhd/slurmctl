@@ -28,7 +28,7 @@ complete -c slurmctl -n __fish_use_subcommand -a help         -d 'Show usage'
 complete -c slurmctl -l job -s j -d 'Override auto-detected job ID' -x
 
 # submit
-complete -c slurmctl -n '__fish_seen_subcommand_from submit' -F -a '*.slurm'
+complete -c slurmctl -n '__fish_seen_subcommand_from submit' -xa '(find . -type f -name "*.slurm" -not -path "*/.*" 2>/dev/null | sed "s|^\./||")'
 complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l after -d 'Run after job completes (afterok)' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l wrap -d 'Submit inline command' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l array -d 'Array task range' -x

@@ -31,7 +31,10 @@ _slurmctl() {
   case "$cmd" in
     submit)
       COMPREPLY=($(compgen -W "--after --wrap --array --output --error" -- "$cur"))
-      COMPREPLY+=($(compgen -f -X '!*.slurm' -- "$cur"))
+      # Complete .slurm files recursively from CWD
+      local scripts
+      scripts=$(find . -type f -name '*.slurm' -not -path '*/.*' 2>/dev/null | sed 's|^\./||')
+      COMPREPLY+=($(compgen -W "$scripts" -- "$cur"))
       ;;
     list)
       COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending -v --verbose --sort -j --job" -- "$cur"))
