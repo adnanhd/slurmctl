@@ -16,8 +16,7 @@ complete -c slurmctl -n __fish_use_subcommand -a head         -d 'View job outpu
 complete -c slurmctl -n __fish_use_subcommand -a less         -d 'View job output (less)'
 complete -c slurmctl -n __fish_use_subcommand -a watch        -d 'Live tail of job output'
 complete -c slurmctl -n __fish_use_subcommand -a errors       -d 'Recent errors'
-complete -c slurmctl -n __fish_use_subcommand -a cancel       -d 'Cancel current job'
-complete -c slurmctl -n __fish_use_subcommand -a cancelall    -d 'Cancel all project jobs'
+complete -c slurmctl -n __fish_use_subcommand -a cancel       -d 'Cancel jobs'
 complete -c slurmctl -n __fish_use_subcommand -a info         -d 'Cluster resource overview'
 complete -c slurmctl -n __fish_use_subcommand -a nodes        -d 'Alias: info --list'
 complete -c slurmctl -n __fish_use_subcommand -a jobs         -d 'Your jobs by node'
@@ -62,6 +61,11 @@ complete -c slurmctl -n '__fish_seen_subcommand_from history' -l all -d 'Include
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l oneline -d 'Compact format'
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l script -d 'Show script paths'
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l state -d 'Filter by state' -x
+
+# cancel
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l all -d 'Cancel all project jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l node -d 'Cancel jobs on node' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l partition -s p -d 'Cancel jobs on partition' -x
 
 # tail/cat/head/less/watch
 complete -c slurmctl -n '__fish_seen_subcommand_from tail cat head less watch' -l no-out -d 'View only stderr'

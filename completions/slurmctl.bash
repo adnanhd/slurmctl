@@ -6,7 +6,7 @@ _slurmctl() {
   _init_completion || return
 
   local subcommands="submit list status acct tasks resubmit
-    tail cat head less watch errors cancel cancelall nodes jobs info
+    tail cat head less watch errors cancel nodes jobs info
     update history pop clear clean health help"
 
   # Complete subcommand as first argument
@@ -58,7 +58,7 @@ _slurmctl() {
       COMPREPLY=($(compgen -W "--format -j --job" -- "$cur"))
       ;;
     cancel)
-      COMPREPLY=($(compgen -W "-j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--all --node --partition -p -j --job" -- "$cur"))
       ;;
     *)
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))

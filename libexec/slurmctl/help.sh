@@ -8,27 +8,27 @@ cat <<EOF
 ${CYAN}slurmctl${RESET} — SLURM Job Management
 ===============================================================================
 
-${YELLOW}Submitting Jobs:${RESET}
-  slurmctl ${GREEN}submit${RESET} <script>.slurm [opts] [sbatch args...]
-  slurmctl ${GREEN}submit${RESET} --wrap="<cmd>" [opts] [sbatch args...]
-    Submit a job and track it in history. Git metadata is captured automatically.
-    --wrap="<cmd>"       Submit an inline command (no script needed)
-    --after <jobid>      Run after <jobid> completes (afterok dependency)
-    Any extra flags are passed directly to sbatch.
-    Run ${CYAN}slurmctl submit --help${RESET} for full details.
+${YELLOW}Job Submitting:${RESET}
+  slurmctl ${GREEN}submit${RESET} <script>.slurm [sbatch args...]
+  slurmctl ${GREEN}submit${RESET} --wrap="<cmd>" [sbatch args...]
+  slurmctl ${GREEN}submit${RESET} --after <jobid> <script>.slurm
+  slurmctl ${GREEN}resubmit${RESET}                Resubmit failed tasks of current job
+  slurmctl ${GREEN}resubmit${RESET} --all           Resubmit all failed jobs from history
 
-${YELLOW}Job Monitoring:${RESET}
+${YELLOW}Job Listing:${RESET}
   slurmctl ${GREEN}list${RESET}                    List your running jobs (squeue)
   slurmctl ${GREEN}status${RESET}                  Detailed status + resource usage
   slurmctl ${GREEN}acct${RESET}                    Accounting details (sacct)
-
-${YELLOW}Array Jobs:${RESET}
   slurmctl ${GREEN}tasks${RESET}                   Show status of all array tasks
   slurmctl ${GREEN}tasks${RESET} --summary         Count completed/running/pending/failed
   slurmctl ${GREEN}tasks${RESET} --failed           Failed task IDs (comma-separated)
   slurmctl ${GREEN}tasks${RESET} --failed -v        Failed tasks with details
-  slurmctl ${GREEN}resubmit${RESET}                Resubmit failed tasks of current job
-  slurmctl ${GREEN}resubmit${RESET} --all           Resubmit all failed jobs from history
+
+${YELLOW}Job Control:${RESET}
+  slurmctl ${GREEN}cancel${RESET}                  Cancel current job
+  slurmctl ${GREEN}cancel${RESET} --all             Cancel all active project jobs
+  slurmctl ${GREEN}cancel${RESET} --node=NODE       Cancel your jobs on a specific node
+  slurmctl ${GREEN}cancel${RESET} -p PARTITION      Cancel your jobs on a partition
 
 ${YELLOW}Output Viewing:${RESET}
   slurmctl ${GREEN}tail${RESET} [ARGS...]           Tail stdout + stderr (pass args to tail)
@@ -39,10 +39,6 @@ ${YELLOW}Output Viewing:${RESET}
   slurmctl ${GREEN}errors${RESET}                  Last 5 lines of recent stderr files
     --no-out             Show only stderr
     --no-err             Show only stdout
-
-${YELLOW}Job Control:${RESET}
-  slurmctl ${GREEN}cancel${RESET}                  Cancel current job
-  slurmctl ${GREEN}cancelall${RESET}               Cancel all active project jobs
 
 ${YELLOW}Cluster Info:${RESET}
   slurmctl ${GREEN}nodes${RESET} [-p PART]                   Per-node one-liner (sinfo)
