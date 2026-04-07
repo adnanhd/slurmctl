@@ -9,10 +9,6 @@ complete -c slurmctl -n __fish_use_subcommand -a list         -d 'List your runn
 complete -c slurmctl -n __fish_use_subcommand -a status       -d 'Job status and efficiency'
 complete -c slurmctl -n __fish_use_subcommand -a acct         -d 'Job accounting details'
 complete -c slurmctl -n __fish_use_subcommand -a tasks        -d 'Array task management'
-complete -c slurmctl -n __fish_use_subcommand -a running      -d 'Alias: tasks --summary'
-complete -c slurmctl -n __fish_use_subcommand -a failed       -d 'Alias: tasks --failed'
-complete -c slurmctl -n __fish_use_subcommand -a 'failed-list' -d 'Alias: tasks --failed --list'
-complete -c slurmctl -n __fish_use_subcommand -a resubmit     -d 'Alias: tasks --resubmit'
 complete -c slurmctl -n __fish_use_subcommand -a resubmitall  -d 'Resubmit all failed jobs'
 complete -c slurmctl -n __fish_use_subcommand -a tail         -d 'View job output (tail)'
 complete -c slurmctl -n __fish_use_subcommand -a cat          -d 'View job output (cat)'
@@ -82,5 +78,3 @@ complete -c slurmctl -n '__fish_seen_subcommand_from jobs' -l partition -s p -d 
 # acct
 complete -c slurmctl -n '__fish_seen_subcommand_from acct' -l format -d 'Custom sacct format' -x
 
-# resubmit
-complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l array -d 'Override array range' -x

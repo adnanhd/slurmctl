@@ -24,10 +24,10 @@ ${YELLOW}Job Monitoring:${RESET}
 
 ${YELLOW}Array Jobs:${RESET}
   slurmctl ${GREEN}tasks${RESET}                   Show status of all array tasks
-  slurmctl ${GREEN}running${RESET}                 Count completed/running/pending/failed
-  slurmctl ${GREEN}failed${RESET}                  Failed task IDs (comma-separated, for --array)
-  slurmctl ${GREEN}failed-list${RESET}             Failed tasks with details
-  slurmctl ${GREEN}resubmit${RESET}                Resubmit failed tasks of current job
+  slurmctl ${GREEN}tasks${RESET} --summary         Count completed/running/pending/failed
+  slurmctl ${GREEN}tasks${RESET} --failed           Failed task IDs (comma-separated, for --array)
+  slurmctl ${GREEN}tasks${RESET} --failed --list    Failed tasks with details
+  slurmctl ${GREEN}tasks${RESET} --resubmit         Resubmit failed tasks of current job
   slurmctl ${GREEN}resubmitall${RESET}             Resubmit all failed jobs from history
 
 ${YELLOW}Output Viewing:${RESET}
@@ -67,10 +67,10 @@ ${YELLOW}Examples:${RESET}
   slurmctl submit train.slurm --array=0-99%8      Submit array job
   slurmctl submit eval.slurm --after 12345        Submit with dependency
   slurmctl submit --wrap="python train.py"       Inline command
-  slurmctl running                                Check progress
+  slurmctl tasks --summary                        Check progress
   slurmctl tail --no-out                          View only stderr
   slurmctl -j 12345 tasks                         Check specific job's tasks
-  slurmctl resubmit                               Resubmit failed tasks
+  slurmctl tasks --resubmit                       Resubmit failed tasks
 
 ${YELLOW}Available Scripts:${RESET} ${SCRIPTS:-none}
 EOF

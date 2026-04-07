@@ -5,7 +5,7 @@ _slurmctl() {
   local cur prev words cword
   _init_completion || return
 
-  local subcommands="submit list status acct tasks running failed failed-list resubmit resubmitall
+  local subcommands="submit list status acct tasks resubmitall
     tail cat head less watch errors cancel cancelall nodes jobs info
     update history pop clear clean health help"
 
@@ -45,14 +45,11 @@ _slurmctl() {
     tasks)
       COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending --list --resubmit --sort -j --job" -- "$cur"))
       ;;
-    acct|failed-list)
+    acct)
       COMPREPLY=($(compgen -W "--format -j --job" -- "$cur"))
       ;;
     cancel)
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))
-      ;;
-    resubmit)
-      COMPREPLY=($(compgen -W "-j --job --array" -- "$cur"))
       ;;
     *)
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))
