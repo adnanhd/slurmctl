@@ -8,8 +8,8 @@ complete -c slurmctl -n __fish_use_subcommand -a submit      -d 'Submit a .slurm
 complete -c slurmctl -n __fish_use_subcommand -a list         -d 'List your running jobs'
 complete -c slurmctl -n __fish_use_subcommand -a status       -d 'Job status and efficiency'
 complete -c slurmctl -n __fish_use_subcommand -a acct         -d 'Job accounting details'
-complete -c slurmctl -n __fish_use_subcommand -a tasks        -d 'Array task management'
-complete -c slurmctl -n __fish_use_subcommand -a resubmitall  -d 'Resubmit all failed jobs'
+complete -c slurmctl -n __fish_use_subcommand -a tasks        -d 'List array task statuses'
+complete -c slurmctl -n __fish_use_subcommand -a resubmit     -d 'Resubmit failed tasks or jobs'
 complete -c slurmctl -n __fish_use_subcommand -a tail         -d 'View job output (tail)'
 complete -c slurmctl -n __fish_use_subcommand -a cat          -d 'View job output (cat)'
 complete -c slurmctl -n __fish_use_subcommand -a head         -d 'View job output (head)'
@@ -50,8 +50,11 @@ complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l failed -d 'Failed
 complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l completed -d 'Completed tasks'
 complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l running -d 'Running tasks'
 complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l pending -d 'Pending tasks'
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l list -d 'Detailed view'
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l resubmit -d 'Resubmit failed'
+complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l verbose -s v -d 'Detailed view'
+
+# resubmit
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l failed -d 'Resubmit failed tasks (default)'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l all -d 'Resubmit all failed jobs from history'
 complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l sort -d 'Sort by time|node' -x
 
 # history

@@ -1,33 +1,29 @@
 #!/bin/bash
-# tasks — array task management (list, filter, resubmit)
-cmd_help "${CYAN}slurmctl tasks${RESET} — Array task management
+# tasks — list array task statuses
+cmd_help "${CYAN}slurmctl tasks${RESET} — List array task statuses
 
 ${YELLOW}Usage:${RESET}
-  slurmctl tasks [-j JOBID]                    All task statuses (default)
-  slurmctl tasks --summary                     Count by state
-  slurmctl tasks --failed                      Failed task IDs (comma-separated)
-  slurmctl tasks --completed                   Completed task IDs
-  slurmctl tasks --running                     Running task IDs
-  slurmctl tasks --pending                     Pending task IDs
-  slurmctl tasks --failed --list               Detailed failed tasks
-  slurmctl tasks --running --list              Detailed running tasks
-  slurmctl tasks --resubmit                    Resubmit failed tasks
-  slurmctl tasks --sort time|node              Sort detailed list
+  slurmctl tasks [-j JOBID]              All task statuses (default)
+  slurmctl tasks --summary               Count by state
+  slurmctl tasks --failed                Failed task IDs (comma-separated)
+  slurmctl tasks --completed             Completed task IDs
+  slurmctl tasks --running               Running task IDs
+  slurmctl tasks --pending               Pending task IDs
+  slurmctl tasks --failed --verbose      Detailed failed tasks
+  slurmctl tasks --sort time|node        Sort detailed list
 
 ${YELLOW}Options:${RESET}
-  --summary             Show counts per state
-  --failed              Filter to failed/timeout/cancelled tasks
-  --completed           Filter to completed tasks
-  --running             Filter to running tasks
-  --pending             Filter to pending tasks
-  --list                Show detailed view (with filter)
-  --resubmit            Resubmit failed tasks
-  --sort time|node      Sort order for list view" "$@"
+  --summary               Show counts per state
+  --failed                Filter to failed/timeout/cancelled tasks
+  --completed             Filter to completed tasks
+  --running               Filter to running tasks
+  --pending               Filter to pending tasks
+  -v, --verbose           Show detailed view (with filter)
+  --sort time|node        Sort order for detailed view" "$@"
 
 FILTER=""
-LIST=false
+VERBOSE=false
 SUMMARY=false
-RESUBMIT=false
 SORT_BY=""
 
 while [ $# -gt 0 ]; do
@@ -37,8 +33,7 @@ while [ $# -gt 0 ]; do
     --completed)  FILTER="completed"; shift ;;
     --running)    FILTER="running"; shift ;;
     --pending)    FILTER="pending"; shift ;;
-    --list)       LIST=true; shift ;;
-    --resubmit)   RESUBMIT=true; shift ;;
+    -v|--verbose|--list) VERBOSE=true; shift ;;
     --sort)       [ $# -lt 2 ] && { echo "error: --sort requires an argument (time|node)" >&2; exit 1; }; SORT_BY="$2"; shift 2 ;;
     *) break ;;
   esac
@@ -58,30 +53,8 @@ if $SUMMARY; then
   exit 0
 fi
 
-# --- Resubmit mode ---
-if $RESUBMIT; then
-  FAILED=$(get_task_ids "$JOBID" failed)
-  if [ -z "$FAILED" ]; then
-    printf "${GREEN}No failed tasks to resubmit${RESET}\n"
-    exit 0
-  fi
-
-  hist_line=$(get_history_entry "$JOBID")
-  SCRIPT=$(json_get "$hist_line" script)
-  if [ -z "$SCRIPT" ]; then
-    printf "${RED}Cannot find script for job %s in history${RESET}\n" "$JOBID" >&2
-    exit 1
-  fi
-
-  mark_job_state "$JOBID" "resubmitted"
-
-  printf "${CYAN}Resubmitting${RESET} %s ${YELLOW}--array=%s${RESET}\n" "$SCRIPT" "$FAILED"
-  bash "$SLURMCTL_SRC_DIR/libexec/slurmctl/submit.sh" "$SCRIPT" --array="$FAILED"
-  exit 0
-fi
-
-# --- ID-only mode (no --list) ---
-if [ -n "$FILTER" ] && ! $LIST; then
+# --- ID-only mode (filter without --verbose) ---
+if [ -n "$FILTER" ] && ! $VERBOSE; then
   IDS=$(get_task_ids "$JOBID" "$FILTER")
   if [ -z "$IDS" ]; then
     printf "${GREEN}No %s tasks for %s${RESET}\n" "$FILTER" "$JOBID" >&2
@@ -91,17 +64,15 @@ if [ -n "$FILTER" ] && ! $LIST; then
   exit 0
 fi
 
-# --- List mode (default or --list with filter) ---
-# Build state filter for grep
+# --- List mode (default or --verbose with filter) ---
 case "$FILTER" in
   failed)    STATE_GREP='FAILED|TIMEOUT|CANCELLED|NODE_FAIL' ;;
   completed) STATE_GREP='COMPLETED' ;;
   running)   STATE_GREP='RUNNING' ;;
   pending)   STATE_GREP='PENDING' ;;
-  *)         STATE_GREP='.' ;;  # all
+  *)         STATE_GREP='.' ;;
 esac
 
-# Build sort flag
 SORT_FLAG=""
 case "$SORT_BY" in
   time) SORT_FLAG="| sort -k4" ;;
