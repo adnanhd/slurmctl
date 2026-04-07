@@ -5,24 +5,45 @@ _slurmctl() {
   local cur prev words cword
   _init_completion || return
 
-  local subcommands="submit list status resubmit
-    tail cat head less watch errors cancel nodes jobs info
-    update history pop clear clean health help"
+  local subcommands="submit list status resubmit cancel
+    tail cat head less watch errors
+    nodes health
+    history update pop clear clean
+    help"
 
-  # Complete subcommand as first argument
-  if [ "$cword" -eq 1 ]; then
+  # -j/--job can appear before subcommand
+  if [ "$cword" -eq 1 ] || { [ "$cword" -eq 3 ] && [[ "${words[1]}" == -j || "${words[1]}" == --job ]]; }; then
     COMPREPLY=($(compgen -W "$subcommands" -- "$cur"))
     return
   fi
 
-  local cmd="${words[1]}"
+  # Find the actual subcommand (skip -j JOBID prefix)
+  local cmd=""
+  for ((i=1; i<cword; i++)); do
+    case "${words[i]}" in
+      -j|--job) ((i++)) ;;  # skip -j and its argument
+      -*) ;;
+      *) cmd="${words[i]}"; break ;;
+    esac
+  done
+  [ -z "$cmd" ] && return
+
   case "$cmd" in
     submit)
       COMPREPLY=($(compgen -W "--after --wrap --array --output --error" -- "$cur"))
       COMPREPLY+=($(compgen -f -X '!*.slurm' -- "$cur"))
       ;;
-    history)
-      COMPREPLY=($(compgen -W "--all --oneline --script --state" -- "$cur"))
+    list)
+      COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending -v --verbose --sort -j --job" -- "$cur"))
+      ;;
+    status)
+      COMPREPLY=($(compgen -W "--acct --eff --why -j --job" -- "$cur"))
+      ;;
+    resubmit)
+      COMPREPLY=($(compgen -W "--failed --all -n --node -p --partition -j --job" -- "$cur"))
+      ;;
+    cancel)
+      COMPREPLY=($(compgen -W "--all -n --node -p --partition -j --job" -- "$cur"))
       ;;
     tail|cat|head|less|watch)
       COMPREPLY=($(compgen -W "--no-out --no-err -j --job" -- "$cur"))
@@ -36,26 +57,11 @@ _slurmctl() {
       elif [[ "$prev" == "--group-by" ]]; then
         COMPREPLY=($(compgen -W "gpu cpu mem job" -- "$cur"))
       else
-        COMPREPLY=($(compgen -W "--partition --verbose --group-by" -- "$cur"))
+        COMPREPLY=($(compgen -W "-v --verbose -p --partition --group-by" -- "$cur"))
       fi
       ;;
-    jobs)
-      COMPREPLY=($(compgen -W "--partition" -- "$cur"))
-      ;;
-    info)
-      COMPREPLY=($(compgen -W "--partition --list --raw" -- "$cur"))
-      ;;
-    status)
-      COMPREPLY=($(compgen -W "--acct --eff --why -j --job" -- "$cur"))
-      ;;
-    list)
-      COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending --verbose --sort -j --job" -- "$cur"))
-      ;;
-    resubmit)
-      COMPREPLY=($(compgen -W "--failed --all --node -n --partition -p -j --job" -- "$cur"))
-      ;;
-    cancel)
-      COMPREPLY=($(compgen -W "--all --node -n --partition -p -j --job" -- "$cur"))
+    history)
+      COMPREPLY=($(compgen -W "-n --all --oneline --script --state" -- "$cur"))
       ;;
     *)
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))
