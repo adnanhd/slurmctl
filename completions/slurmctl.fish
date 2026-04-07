@@ -5,10 +5,9 @@ complete -c slurmctl -f
 
 # Subcommands
 complete -c slurmctl -n __fish_use_subcommand -a submit      -d 'Submit a .slurm script'
-complete -c slurmctl -n __fish_use_subcommand -a list         -d 'List your running jobs'
+complete -c slurmctl -n __fish_use_subcommand -a list         -d 'List jobs and tasks'
 complete -c slurmctl -n __fish_use_subcommand -a status       -d 'Job status and efficiency'
 complete -c slurmctl -n __fish_use_subcommand -a acct         -d 'Job accounting details'
-complete -c slurmctl -n __fish_use_subcommand -a tasks        -d 'List array task statuses'
 complete -c slurmctl -n __fish_use_subcommand -a resubmit     -d 'Resubmit failed tasks or jobs'
 complete -c slurmctl -n __fish_use_subcommand -a tail         -d 'View job output (tail)'
 complete -c slurmctl -n __fish_use_subcommand -a cat          -d 'View job output (cat)'
@@ -43,20 +42,20 @@ complete -c slurmctl -n '__fish_seen_subcommand_from submit' -l error -d 'Overri
 complete -c slurmctl -n '__fish_seen_subcommand_from status' -l eff -d 'Resource efficiency'
 complete -c slurmctl -n '__fish_seen_subcommand_from status' -l why -d 'Why is job pending'
 
-# tasks
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l summary -d 'Count by state'
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l failed -d 'Failed tasks'
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l completed -d 'Completed tasks'
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l running -d 'Running tasks'
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l pending -d 'Pending tasks'
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l verbose -s v -d 'Detailed view'
+# list
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l summary -d 'Count by state'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l failed -d 'Failed tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l completed -d 'Completed tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l running -d 'Running tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l pending -d 'Pending tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l verbose -s v -d 'Detailed view'
 
 # resubmit
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l failed -d 'Resubmit failed tasks (default)'
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l all -d 'Resubmit all failed jobs from history'
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l partition -s p -d 'Filter by partition' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l node -s n -d 'Filter by node' -x
-complete -c slurmctl -n '__fish_seen_subcommand_from tasks' -l sort -d 'Sort by time|node' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l sort -d 'Sort by time|node' -x
 
 # history
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l all -d 'Include archived'

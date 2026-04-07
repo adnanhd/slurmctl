@@ -14,13 +14,12 @@ ${YELLOW}Job Submitting:${RESET}
   slurmctl ${GREEN}submit${RESET} --after <jobid> <script>.slurm
 
 ${YELLOW}Job Listing:${RESET}
-  slurmctl ${GREEN}list${RESET}                    List your running jobs (squeue)
-  slurmctl ${GREEN}status${RESET}                  Detailed status + resource usage
+  slurmctl ${GREEN}list${RESET}                    Your running/pending jobs (squeue)
+  slurmctl ${GREEN}list${RESET} --summary          Task/step count by state
+  slurmctl ${GREEN}list${RESET} --failed            Failed task IDs (comma-separated)
+  slurmctl ${GREEN}list${RESET} --failed -v         Failed tasks with details
+  slurmctl ${GREEN}status${RESET}                  Detailed job status + resource usage
   slurmctl ${GREEN}acct${RESET}                    Accounting details (sacct)
-  slurmctl ${GREEN}tasks${RESET}                   Show status of all array tasks
-  slurmctl ${GREEN}tasks${RESET} --summary         Count completed/running/pending/failed
-  slurmctl ${GREEN}tasks${RESET} --failed           Failed task IDs (comma-separated)
-  slurmctl ${GREEN}tasks${RESET} --failed -v        Failed tasks with details
 
 ${YELLOW}Job Control:${RESET}
   slurmctl ${GREEN}cancel${RESET}                  Cancel current job
@@ -69,10 +68,10 @@ ${YELLOW}Examples:${RESET}
   slurmctl submit train.slurm --array=0-99%8      Submit array job
   slurmctl submit eval.slurm --after 12345        Submit with dependency
   slurmctl submit --wrap="python train.py"       Inline command
-  slurmctl tasks --summary                        Check progress
+  slurmctl list --summary                         Check array job progress
+  slurmctl list --failed                          Get failed task IDs
   slurmctl tail --no-out                          View only stderr
-  slurmctl -j 12345 tasks                         Check specific job's tasks
-  slurmctl resubmit                                Resubmit failed tasks
+  slurmctl resubmit                               Resubmit failed tasks
 
 ${YELLOW}Available Scripts:${RESET}
 EOF
