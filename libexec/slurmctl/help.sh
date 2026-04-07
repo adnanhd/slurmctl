@@ -8,74 +8,97 @@ cat <<EOF
 ${CYAN}slurmctl${RESET} — SLURM Job Management
 ===============================================================================
 
+${YELLOW}Global Flags:${RESET}
+  -j, --job JOBID         Target a specific job (overrides auto-detection)
+
 ${YELLOW}Job Submitting:${RESET}
-  slurmctl ${GREEN}submit${RESET} <script>.slurm [sbatch args...]
-  slurmctl ${GREEN}submit${RESET} --wrap="<cmd>" [sbatch args...]
-  slurmctl ${GREEN}submit${RESET} --after <jobid> <script>.slurm
+
+  ${GREEN}submit${RESET} <script> [--after JOBID] [--wrap="<cmd>"] [--array=RANGE] [sbatch args...]
+    Submit a job and track in history. Git metadata captured automatically.
+    --after JOBID           Run after JOBID completes (afterok dependency)
+    --wrap="<cmd>"          Submit an inline command (no script file needed)
+    --array=RANGE           Submit as array job (e.g. 0-99%8)
+    Any extra flags are passed directly to sbatch.
 
 ${YELLOW}Job Listing:${RESET}
-  slurmctl ${GREEN}list${RESET}                    Your running/pending jobs (squeue)
-  slurmctl ${GREEN}list${RESET} --summary          Task/step count by state
-  slurmctl ${GREEN}list${RESET} --failed            Failed task IDs (comma-separated)
-  slurmctl ${GREEN}list${RESET} --failed -v         Failed tasks with details
+
+  ${GREEN}list${RESET} [-j JOBID] [--summary] [--failed|--completed|--running|--pending] [-v] [--sort time|node]
+    Without filters: your running/pending jobs (squeue).
+    With filters: task/step breakdown for a job (sacct). Works for array, single, and wrap jobs.
+    --summary               Count tasks by state
+    --failed                Failed task IDs (comma-separated)
+    --completed             Completed task IDs
+    --running               Running task IDs
+    --pending               Pending task IDs
+    -v, --verbose           Detailed view with exit codes and nodes
+    --sort time|node        Sort order for detailed view
 
 ${YELLOW}Job Status:${RESET}
-  slurmctl ${GREEN}status${RESET}                  Job state, runtime, resources
-  slurmctl ${GREEN}status${RESET} --acct            Accounting details (sacct)
-  slurmctl ${GREEN}status${RESET} --eff             Resource efficiency (CPU, memory, GPU)
-  slurmctl ${GREEN}status${RESET} --why             Why is this job pending?
+
+  ${GREEN}status${RESET} [-j JOBID] [--acct] [--eff] [--why]
+    Deep inspection of a single job. Auto-detects array/single/wrap.
+    (default)               Job state, runtime, resources (+ array summary)
+    --acct                  Accounting details from sacct
+    --eff                   Resource efficiency (avg/max CPU, memory, GPU)
+    --why                   Why is this job pending?
 
 ${YELLOW}Job Control:${RESET}
-  slurmctl ${GREEN}cancel${RESET}                  Cancel current job
-  slurmctl ${GREEN}cancel${RESET} --all             Cancel all active project jobs
-  slurmctl ${GREEN}cancel${RESET} --node=NODE       Cancel jobs on a specific node
-  slurmctl ${GREEN}cancel${RESET} -p PARTITION      Cancel jobs on a partition
-  slurmctl ${GREEN}resubmit${RESET}                Resubmit failed tasks of current job
-  slurmctl ${GREEN}resubmit${RESET} --all           Resubmit all failed jobs from history
-  slurmctl ${GREEN}resubmit${RESET} --all -p PART   Resubmit failed jobs on a partition
-  slurmctl ${GREEN}resubmit${RESET} --all --node=N  Resubmit failed jobs on a node
+
+  ${GREEN}cancel${RESET} [-j JOBID] [--all] [-n NODE] [-p PARTITION]
+    Cancel jobs. Without flags: cancel current/specified job.
+    --all                   Cancel all active project jobs from history
+    -n, --node NODE         Cancel your jobs on NODE
+    -p, --partition PART    Cancel your jobs on PARTITION
+
+  ${GREEN}resubmit${RESET} [-j JOBID] [--all] [-n NODE] [-p PARTITION]
+    Resubmit failed tasks. Without flags: resubmit failed tasks of current job.
+    --failed                Resubmit failed tasks (default, explicit)
+    --all                   Resubmit all failed jobs from history
+    -n, --node NODE         Filter to jobs that ran on NODE
+    -p, --partition PART    Filter to jobs on PARTITION
 
 ${YELLOW}Output Viewing:${RESET}
-  slurmctl ${GREEN}tail${RESET} [ARGS...]           Tail stdout + stderr (pass args to tail)
-  slurmctl ${GREEN}cat${RESET}                     Full stdout + stderr
-  slurmctl ${GREEN}head${RESET} [ARGS...]           Head of stdout + stderr
-  slurmctl ${GREEN}less${RESET}                    Pager view of stdout + stderr
-  slurmctl ${GREEN}watch${RESET}                   Live tail -f of job output
-  slurmctl ${GREEN}errors${RESET}                  Last 5 lines of recent stderr files
-    --no-out             Show only stderr
-    --no-err             Show only stdout
+
+  ${GREEN}tail${RESET} [-j JOBID] [--no-out] [--no-err] [tail args...]
+  ${GREEN}cat${RESET}  [-j JOBID] [--no-out] [--no-err]
+  ${GREEN}head${RESET} [-j JOBID] [--no-out] [--no-err] [head args...]
+  ${GREEN}less${RESET} [-j JOBID] [--no-out] [--no-err]
+  ${GREEN}watch${RESET} [-j JOBID]
+  ${GREEN}errors${RESET}
+    View job stdout/stderr. Defaults to current job.
+    --no-out                Show only stderr
+    --no-err                Show only stdout
 
 ${YELLOW}Cluster Info:${RESET}
-  slurmctl ${GREEN}nodes${RESET} [-p PART]                   Per-node one-liner (sinfo)
-  slurmctl ${GREEN}nodes${RESET} -v                          Per-node with CPU/GPU detail
-  slurmctl ${GREEN}nodes${RESET} --group-by=gpu              Nodes grouped by free GPU count
-  slurmctl ${GREEN}nodes${RESET} --group-by=cpu              Nodes grouped by idle CPU count
-  slurmctl ${GREEN}nodes${RESET} --group-by=mem              Nodes grouped by total memory
-  slurmctl ${GREEN}nodes${RESET} --group-by=job              Your jobs grouped by node
-  Any --group-by mode supports ${GREEN}-v${RESET} for per-node detail within each group.
+
+  ${GREEN}nodes${RESET} [-p PARTITION] [-v] [--group-by=MODE]
+    Cluster node status. Without --group-by: flat node list.
+    -v, --verbose           Detailed view with CPU/GPU/state per node
+    -p, --partition PART    Filter to PARTITION
+    --group-by=MODE         Group output:
+      gpu                   Nodes grouped by free GPU count
+      cpu                   Nodes grouped by idle CPU count
+      mem                   Nodes grouped by total memory (GiB)
+      job                   Your jobs grouped by node
+    All modes support -v for per-node detail within each group.
 
 ${YELLOW}History:${RESET}
-  slurmctl ${GREEN}update${RESET}                  Refresh job states from sacct
-  slurmctl ${GREEN}history${RESET} [-n N] [--all]   Submission log (newest first)
-  slurmctl ${GREEN}pop${RESET}                     Archive job (remove from active stack)
-  slurmctl ${GREEN}clear${RESET}                   Clear all history
-  slurmctl ${GREEN}clean${RESET}                   Remove SLURM output files
+
+  ${GREEN}history${RESET} [-n N] [--all] [--oneline] [--script] [--state STATE]
+    Show submission history (newest first).
+    -n N                    Show last N entries
+    --all                   Include archived entries
+    --oneline               Compact one-line format
+    --script                Show script paths
+    --state STATE           Filter by state
+
+  ${GREEN}update${RESET}                  Refresh job states from sacct
+  ${GREEN}pop${RESET}                     Archive current job from active history
+  ${GREEN}clear${RESET}                   Clear all history
+  ${GREEN}clean${RESET}                   Remove SLURM output files
 
 ${YELLOW}Other:${RESET}
-  slurmctl ${GREEN}health${RESET}                  Version, environment, connectivity
-
-${YELLOW}Global Flags:${RESET}
-  --job, -j <JOBID>     Target a specific job (overrides auto-detection)
-
-${YELLOW}Examples:${RESET}
-  slurmctl submit train.slurm                     Submit a job
-  slurmctl submit train.slurm --array=0-99%8      Submit array job
-  slurmctl submit eval.slurm --after 12345        Submit with dependency
-  slurmctl submit --wrap="python train.py"       Inline command
-  slurmctl list --summary                         Check array job progress
-  slurmctl list --failed                          Get failed task IDs
-  slurmctl tail --no-out                          View only stderr
-  slurmctl resubmit                               Resubmit failed tasks
+  ${GREEN}health${RESET}                  Version, install path, project, cluster status
 
 ${YELLOW}Available Scripts:${RESET}
 EOF
@@ -90,7 +113,7 @@ else
     file = $NF
     if (dir != prev_dir) {
       if (prev_dir != "") printf "\n"
-      printf "  %s/\n", dir
+      printf "  ./%s/\n", dir
       prev_dir = dir
     }
     printf "    %s\n", file
