@@ -51,7 +51,7 @@ if $CANCEL_ALL; then
     jid=$(json_get "$line" job_id)
     printf "${RED}Cancelling${RESET} job %s\n" "$jid"
     scancel "$jid" 2>/dev/null
-    ((count++))
+    count=$((count + 1))
   done < "$HIST_FILE"
 
   if [ "$count" -gt 0 ]; then
@@ -83,7 +83,7 @@ if [ -n "$CANCEL_NODE" ]; then
     [ -z "$jid" ] && continue
     printf "${RED}Cancelling${RESET} %s on %s\n" "$jid" "$CANCEL_NODE"
     scancel "$jid" 2>/dev/null
-    ((count++))
+    count=$((count + 1))
   done <<< "$JOBS"
   printf "${GREEN}Cancelled${RESET} %d job(s) on %s\n" "$count" "$CANCEL_NODE"
   exit 0
@@ -102,7 +102,7 @@ if [ -n "$CANCEL_PARTITION" ]; then
     [ -z "$jid" ] && continue
     printf "${RED}Cancelling${RESET} %s on %s\n" "$jid" "$CANCEL_PARTITION"
     scancel "$jid" 2>/dev/null
-    ((count++))
+    count=$((count + 1))
   done <<< "$JOBS"
   printf "${GREEN}Cancelled${RESET} %d job(s) on %s\n" "$count" "$CANCEL_PARTITION"
   exit 0
