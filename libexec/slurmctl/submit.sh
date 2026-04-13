@@ -173,6 +173,8 @@ if $has_gpu && [ -n "$script" ] && [ -z "${SLURMCTL_NO_GPU_MONITOR:-}" ]; then
   # GPU wrapper strips --output/--error from directives, so always
   # pass them as CLI flags to ensure logs go to the right place.
   sbatch_extra=(-o "$user_out" -e "$user_err")
+  # Re-add dependency if --after was specified (must not be lost)
+  [ -n "$depends_on" ] && sbatch_extra+=(--dependency="afterok:$depends_on")
 fi
 
 # --- Submit ---
