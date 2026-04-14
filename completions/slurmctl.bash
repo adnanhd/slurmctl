@@ -1,6 +1,14 @@
 #!/bin/bash
 # Bash completion for slurmctl
 
+# Cache partition list for one shell session (sinfo can be slow)
+_slurmctl_partitions() {
+  if [ -z "${_SLURMCTL_PARTS:-}" ]; then
+    _SLURMCTL_PARTS=$(sinfo -h -o '%R' 2>/dev/null | sort -u | tr '\n' ' ')
+  fi
+  echo "$_SLURMCTL_PARTS"
+}
+
 _slurmctl() {
   local cur prev words cword
   _init_completion || return
@@ -21,32 +29,39 @@ _slurmctl() {
   local cmd=""
   for ((i=1; i<cword; i++)); do
     case "${words[i]}" in
-      -j|--job) ((i++)) ;;  # skip -j and its argument
+      -j|--job) ((i++)) ;;
       -*) ;;
       *) cmd="${words[i]}"; break ;;
     esac
   done
   [ -z "$cmd" ] && return
 
+  # Dynamic partition completion for -p/--partition values
+  case "$prev" in
+    -p|--partition)
+      COMPREPLY=($(compgen -W "$(_slurmctl_partitions)" -- "$cur"))
+      return
+      ;;
+  esac
+
   case "$cmd" in
     submit)
       COMPREPLY=($(compgen -W "--after --wrap --array --output --error" -- "$cur"))
-      # Complete .slurm files recursively from CWD
       local scripts
       scripts=$(find . -type f -name '*.slurm' -not -path '*/.*' 2>/dev/null | sed 's|^\./||')
       COMPREPLY+=($(compgen -W "$scripts" -- "$cur"))
       ;;
     list)
-      COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending -v --verbose --sort -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending --cancelled --timeout --since --until -v --verbose --sort -j --job" -- "$cur"))
       ;;
     status)
       COMPREPLY=($(compgen -W "--acct --eff --why -j --job" -- "$cur"))
       ;;
     resubmit)
-      COMPREPLY=($(compgen -W "--failed --all -n --node -p --partition -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--failed --cancelled --timeout --node-fail --all --since --until -n --node -p --partition -j --job" -- "$cur"))
       ;;
     cancel)
-      COMPREPLY=($(compgen -W "--all -n --node -p --partition -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--all --pending --running --since --until -n --node -p --partition -j --job" -- "$cur"))
       ;;
     tail|cat|head|less|watch)
       COMPREPLY=($(compgen -W "--no-out --no-err -j --job" -- "$cur"))
@@ -64,7 +79,7 @@ _slurmctl() {
       fi
       ;;
     history)
-      COMPREPLY=($(compgen -W "-n --all --oneline --script --state" -- "$cur"))
+      COMPREPLY=($(compgen -W "-n --all --oneline --script --failed --completed --running --pending --cancelled --timeout --node-fail --since --until" -- "$cur"))
       ;;
     *)
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))

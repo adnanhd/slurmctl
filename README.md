@@ -45,9 +45,18 @@ slurmctl list --failed -v          # failed tasks with details
 slurmctl list --completed          # completed task IDs
 slurmctl list --running            # running task IDs
 slurmctl list --pending            # pending task IDs
+slurmctl list --cancelled          # cancelled task IDs
+slurmctl list --timeout            # timed-out task IDs
+slurmctl list --since yesterday    # all your jobs since yesterday (sacct)
+slurmctl list --since 1h --failed  # jobs failed in last hour
 ```
 
-Auto-detects array vs single vs wrap jobs.
+Auto-detects array vs single vs wrap jobs. `--since`/`--until` without `-j`
+switches to a sacct-backed global view across all your jobs. Datetimes
+accept anything `sacct -S` accepts: `2026-04-14`, `yesterday`, `now-3days`, `1h`.
+
+Note: `--failed` now means strictly FAILED. For the previous union, combine
+flags: `--failed --cancelled --timeout`.
 
 ### Job Status
 
@@ -63,16 +72,24 @@ Falls back to sacct for completed jobs. Shows array task summary for array jobs.
 ### Job Control
 
 ```sh
-slurmctl cancel                    # cancel current job
-slurmctl cancel --all              # cancel all active project jobs
-slurmctl cancel -n kolyoz23        # cancel your jobs on a node
-slurmctl cancel -p palamut-cuda    # cancel your jobs on a partition
+slurmctl cancel                       # cancel current job
+slurmctl cancel --all                 # cancel all active project jobs
+slurmctl cancel -n kolyoz23           # cancel your jobs on a node
+slurmctl cancel -p palamut-cuda       # cancel your jobs on a partition
+slurmctl cancel --pending             # cancel only your pending jobs
+slurmctl cancel --all --since 1h      # cancel project jobs submitted in last hour
 
-slurmctl resubmit                  # resubmit failed tasks of current job
-slurmctl resubmit --all            # resubmit all failed jobs from history
-slurmctl resubmit --all -p PART    # resubmit failed jobs on a partition
-slurmctl resubmit --all -n NODE    # resubmit failed jobs on a node
+slurmctl resubmit                     # resubmit failed tasks of current job
+slurmctl resubmit --all               # resubmit all failed jobs from history
+slurmctl resubmit --all -p PART       # resubmit failed jobs on a partition
+slurmctl resubmit --all -n NODE       # resubmit failed jobs on a node
+slurmctl resubmit --all --cancelled   # also include cancelled jobs
+slurmctl resubmit --all --since yesterday   # only jobs submitted since yesterday
 ```
+
+`cancel` and `resubmit` accept `--since`/`--until` (dates/offsets like
+`yesterday`, `now-3days`, `1h`) and state flags (`--failed`, `--cancelled`,
+`--timeout`, `--node-fail` for resubmit; `--pending`, `--running` for cancel).
 
 ### Output Viewing
 
@@ -108,11 +125,16 @@ All `--group-by` modes support `-v` for per-node detail within groups.
 slurmctl history                   # submission log (newest first)
 slurmctl history -n 5              # last 5 entries
 slurmctl history --all             # include archived
+slurmctl history --failed          # only FAILED jobs
+slurmctl history --since yesterday # jobs submitted since yesterday
 slurmctl update                    # refresh states from sacct
 slurmctl pop                       # archive current job
 slurmctl clear                     # clear all history
 slurmctl clean                     # remove output files
 ```
+
+History supports per-state flags (`--failed`/`--completed`/`--cancelled`/`--timeout`/`--running`/`--pending`/`--node-fail`)
+and `--since`/`--until` for date windowing.
 
 ## Configuration
 

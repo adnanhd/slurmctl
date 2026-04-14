@@ -7,32 +7,56 @@ ${YELLOW}Usage:${RESET}
   slurmctl cancel --all                   Cancel all active project jobs
   slurmctl cancel --node=NODE             Cancel your jobs on a specific node
   slurmctl cancel -p PARTITION            Cancel your jobs on a partition
+  slurmctl cancel --all --since 1h        Cancel project jobs submitted in last hour
+  slurmctl cancel --pending               Cancel all your pending jobs
 
 ${YELLOW}Options:${RESET}
   --all                   Cancel all active project jobs from history
+  --pending               Restrict to pending jobs (use with --all)
+  --running               Restrict to running jobs (use with --all)
+  --since DATETIME        Only jobs submitted on/after DATETIME
+  --until DATETIME        Only jobs submitted before DATETIME
   -n, --node=NODE         Cancel jobs running on NODE
   -p, --partition PART    Cancel jobs in PARTITION
+
+DATETIME accepts: 2026-04-14, yesterday, now-3days, 1h.
 
 ${YELLOW}Examples:${RESET}
   slurmctl cancel                         Cancel current job
   slurmctl cancel -j 12345                Cancel specific job
   slurmctl cancel --all                   Cancel all project jobs
   slurmctl cancel --node=kolyoz23         Cancel jobs on kolyoz23
-  slurmctl cancel -p palamut-cuda         Cancel jobs on palamut partition" "$@"
+  slurmctl cancel -p palamut-cuda         Cancel jobs on palamut partition
+  slurmctl cancel --all --since yesterday Only jobs since yesterday" "$@"
 
 CANCEL_ALL=false
 CANCEL_NODE=""
 CANCEL_PARTITION=""
+SINCE=""
+UNTIL=""
+STATE_FILTERS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --all)        CANCEL_ALL=true; shift ;;
+    --pending)    STATE_FILTERS+=(pending); CANCEL_ALL=true; shift ;;
+    --running)    STATE_FILTERS+=(running); CANCEL_ALL=true; shift ;;
     --node=*)      CANCEL_NODE="${1#*=}"; shift ;;
     -n|--node)    [ $# -lt 2 ] && { echo "error: --node requires an argument" >&2; exit 1; }; CANCEL_NODE="$2"; shift 2 ;;
     -p|--partition) [ $# -lt 2 ] && { echo "error: --partition requires an argument" >&2; exit 1; }; CANCEL_PARTITION="$2"; shift 2 ;;
     --partition=*) CANCEL_PARTITION="${1#*=}"; shift ;;
+    --since=*)    SINCE="${1#*=}"; shift ;;
+    --since)      [ $# -lt 2 ] && { echo "error: --since requires an argument" >&2; exit 1; }; SINCE="$2"; shift 2 ;;
+    --until=*)    UNTIL="${1#*=}"; shift ;;
+    --until)      [ $# -lt 2 ] && { echo "error: --until requires an argument" >&2; exit 1; }; UNTIL="$2"; shift 2 ;;
     *) break ;;
   esac
 done
+
+# Resolve date bounds to ISO-8601 (for lexicographic compare with "created")
+SINCE_ISO=""
+UNTIL_ISO=""
+[ -n "$SINCE" ] && { SINCE_ISO=$(parse_datetime "$SINCE") || exit 1; }
+[ -n "$UNTIL" ] && { UNTIL_ISO=$(parse_datetime "$UNTIL") || exit 1; }
 
 # --- Cancel all active project jobs ---
 if $CANCEL_ALL; then
@@ -41,14 +65,33 @@ if $CANCEL_ALL; then
     exit 0
   fi
 
+  # Build current-state filter regex (from --pending/--running)
+  state_regex=""
+  if [ "${#STATE_FILTERS[@]}" -gt 0 ]; then
+    state_regex=$(state_filter_regex "$(IFS=,; echo "${STATE_FILTERS[*]}")")
+  fi
+
   count=0
   while IFS= read -r line; do
     state=$(json_get_state "$line")
     case "$state" in
-      cancelled|archived|COMPLETED|FAILED*|TIMEOUT*|resubmitted) continue ;;
+      cancelled|archived|COMPLETED|FAILED*|TIMEOUT*|CANCELLED*|resubmitted) continue ;;
     esac
 
+    # Date-range filter on "created"
+    created=$(json_get_or_empty "$line" created)
+    if [ -n "$SINCE_ISO" ] && [ -n "$created" ] && [[ "$created" < "$SINCE_ISO" ]]; then continue; fi
+    if [ -n "$UNTIL_ISO" ] && [ -n "$created" ] && [[ "$created" > "$UNTIL_ISO" ]]; then continue; fi
+
     jid=$(json_get "$line" job_id)
+
+    # Live state filter (squeue) for --pending/--running
+    if [ -n "$state_regex" ]; then
+      live=$(squeue -j "$jid" -h -o '%T' 2>/dev/null | head -1)
+      [ -z "$live" ] && continue
+      [[ ! "$live" =~ $state_regex ]] && continue
+    fi
+
     printf "${RED}Cancelling${RESET} job %s\n" "$jid"
     scancel "$jid" 2>/dev/null
     count=$((count + 1))

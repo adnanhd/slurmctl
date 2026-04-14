@@ -9,39 +9,91 @@ ${YELLOW}Usage:${RESET}
   slurmctl list [-j JOBID] --completed   Completed task IDs
   slurmctl list [-j JOBID] --running     Running task IDs
   slurmctl list [-j JOBID] --pending     Pending task IDs
+  slurmctl list [-j JOBID] --cancelled   Cancelled task IDs
+  slurmctl list [-j JOBID] --timeout     Timed-out task IDs
   slurmctl list [-j JOBID] --failed -v   Failed tasks with details
   slurmctl list [-j JOBID] --sort time|node
+  slurmctl list --since DATETIME         All your jobs submitted after DATETIME
+  slurmctl list --since 1h --failed      Jobs failed in the last hour
 
 ${YELLOW}Options:${RESET}
   --summary               Count tasks/steps by state
-  --failed                Filter to failed/timeout tasks
-  --completed             Filter to completed tasks
-  --running               Filter to running tasks
-  --pending               Filter to pending tasks
+  --failed                Filter to FAILED tasks
+  --completed             Filter to COMPLETED tasks
+  --running               Filter to RUNNING tasks
+  --pending               Filter to PENDING tasks
+  --cancelled             Filter to CANCELLED tasks
+  --timeout               Filter to TIMEOUT tasks
+  --since DATETIME        Only jobs on/after DATETIME (sacct -S)
+  --until DATETIME        Only jobs before DATETIME (sacct -E)
   -v, --verbose           Detailed view with exit codes and nodes
   --sort time|node        Sort order for detailed view
 
-Without filters, shows your squeue. With filters, shows task/step
-breakdown for the current job (auto-detected or -j). Works for
-array jobs, single jobs, and --wrap jobs." "$@"
+DATETIME accepts anything sacct -S accepts: 2026-04-14, yesterday, now-3days, 1h.
 
-FILTER=""
+Without filters, shows your squeue. With filters and -j, shows task/step
+breakdown for the current job. With --since/--until and no -j, shows all
+your jobs in the window (sacct-backed)." "$@"
+
+FILTERS=()
 VERBOSE=false
 SUMMARY=false
 SORT_BY=""
+SINCE=""
+UNTIL=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --summary)    SUMMARY=true; shift ;;
-    --failed)     FILTER="failed"; shift ;;
-    --completed)  FILTER="completed"; shift ;;
-    --running)    FILTER="running"; shift ;;
-    --pending)    FILTER="pending"; shift ;;
+    --failed)     FILTERS+=(failed); shift ;;
+    --completed)  FILTERS+=(completed); shift ;;
+    --running)    FILTERS+=(running); shift ;;
+    --pending)    FILTERS+=(pending); shift ;;
+    --cancelled)  FILTERS+=(cancelled); shift ;;
+    --timeout)    FILTERS+=(timeout); shift ;;
     -v|--verbose|--list) VERBOSE=true; shift ;;
     --sort)       [ $# -lt 2 ] && { echo "error: --sort requires an argument (time|node)" >&2; exit 1; }; SORT_BY="$2"; shift 2 ;;
+    --since=*)    SINCE="${1#*=}"; shift ;;
+    --since)      [ $# -lt 2 ] && { echo "error: --since requires an argument" >&2; exit 1; }; SINCE="$2"; shift 2 ;;
+    --until=*)    UNTIL="${1#*=}"; shift ;;
+    --until)      [ $# -lt 2 ] && { echo "error: --until requires an argument" >&2; exit 1; }; UNTIL="$2"; shift 2 ;;
     *) break ;;
   esac
 done
+
+# Join FILTERS with comma for state_filter_regex
+FILTER=""
+if [ "${#FILTERS[@]}" -gt 0 ]; then
+  FILTER=$(IFS=,; echo "${FILTERS[*]}")
+fi
+
+# --- Global sacct mode: --since/--until without a specific -j ---
+if [ -n "$SINCE" ] || [ -n "$UNTIL" ]; then
+  if [ -z "${SLURMCTL_JOBID:-}" ]; then
+    sacct_args=(-u "$USER" -X --format='JobID%15,JobName%25,Partition%15,State%12,Elapsed,Start,NodeList%20' -n -P)
+    [ -n "$SINCE" ] && sacct_args+=(-S "$SINCE")
+    [ -n "$UNTIL" ] && sacct_args+=(-E "$UNTIL")
+
+    state_grep='.'
+    [ -n "$FILTER" ] && state_grep=$(state_filter_regex "$FILTER")
+
+    printf "${CYAN}Your jobs"
+    [ -n "$SINCE" ] && printf " since %s" "$SINCE"
+    [ -n "$UNTIL" ] && printf " until %s" "$UNTIL"
+    printf ":${RESET}\n"
+
+    sacct "${sacct_args[@]}" 2>/dev/null | \
+      awk -F'|' -v re="$state_grep" '$4 ~ re {printf "%s  %-25s  %-15s  %-12s  %-10s  %-19s  %s\n", $1, $2, $3, $4, $5, $6, $7}' | \
+      sed "s/COMPLETED/$(printf "${GREEN}COMPLETED${RESET}")/g" | \
+      sed "s/FAILED/$(printf "${RED}FAILED${RESET}")/g" | \
+      sed "s/RUNNING/$(printf "${YELLOW}RUNNING${RESET}")/g" | \
+      sed "s/PENDING/$(printf "${BLUE}PENDING${RESET}")/g" | \
+      sed "s/TIMEOUT/$(printf "${RED}TIMEOUT${RESET}")/g" | \
+      sed "s/CANCELLED/$(printf "${RED}CANCELLED${RESET}")/g"
+    exit 0
+  fi
+  # If -j is set, --since/--until fall through and are ignored for per-job views
+fi
 
 # --- No filter: squeue listing ---
 if ! $SUMMARY && [ -z "$FILTER" ]; then
@@ -82,6 +134,8 @@ if $SUMMARY; then
 fi
 
 # --- Filter mode ---
+STATE_GREP=$(state_filter_regex "$FILTER")
+
 if _is_array "$JOBID"; then
   # Array job: filter tasks
   if ! $VERBOSE; then
@@ -93,15 +147,6 @@ if _is_array "$JOBID"; then
       echo "$IDS"
     fi
   else
-    # Detailed list
-    case "$FILTER" in
-      failed)    STATE_GREP='FAILED|TIMEOUT|CANCELLED|NODE_FAIL' ;;
-      completed) STATE_GREP='COMPLETED' ;;
-      running)   STATE_GREP='RUNNING' ;;
-      pending)   STATE_GREP='PENDING' ;;
-      *)         STATE_GREP='.' ;;
-    esac
-
     SORT_FLAG=""
     case "$SORT_BY" in
       time) SORT_FLAG="| sort -k4" ;;
@@ -125,15 +170,7 @@ else
   # Single/wrap job: filter is just a state check
   state=$(sacct -j "$JOBID" --format=State -n -P 2>/dev/null | head -1)
 
-  match=false
-  case "$FILTER" in
-    failed)    [[ "$state" =~ FAILED|TIMEOUT|CANCELLED|NODE_FAIL ]] && match=true ;;
-    completed) [ "$state" = "COMPLETED" ] && match=true ;;
-    running)   [ "$state" = "RUNNING" ] && match=true ;;
-    pending)   [ "$state" = "PENDING" ] && match=true ;;
-  esac
-
-  if $match; then
+  if [[ "$state" =~ $STATE_GREP ]]; then
     if $VERBOSE; then
       elapsed=$(sacct -j "$JOBID" --format=Elapsed -n -P 2>/dev/null | head -1)
       exitcode=$(sacct -j "$JOBID" --format=ExitCode -n -P 2>/dev/null | head -1)

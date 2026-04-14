@@ -3,37 +3,66 @@
 cmd_help "${CYAN}slurmctl resubmit${RESET} — Resubmit failed tasks or jobs
 
 ${YELLOW}Usage:${RESET}
-  slurmctl resubmit [-j JOBID]              Resubmit failed tasks of current/specified job
-  slurmctl resubmit --all                   Resubmit all failed jobs from history
-  slurmctl resubmit --all -p PARTITION      Resubmit failed jobs that used PARTITION
-  slurmctl resubmit --all --node=NODE       Resubmit failed jobs that ran on NODE
+  slurmctl resubmit [-j JOBID]                Resubmit failed tasks of current/specified job
+  slurmctl resubmit --all                     Resubmit all failed jobs from history
+  slurmctl resubmit --all -p PARTITION        Resubmit failed jobs that used PARTITION
+  slurmctl resubmit --all --node=NODE         Resubmit failed jobs that ran on NODE
+  slurmctl resubmit --all --cancelled         Also resubmit cancelled jobs
+  slurmctl resubmit --all --since yesterday   Only jobs submitted since yesterday
 
 ${YELLOW}Options:${RESET}
-  --failed                Default: resubmit failed array tasks
-  --all                   Resubmit all failed jobs from history
+  --failed                Default: resubmit FAILED jobs
+  --cancelled             Also include CANCELLED jobs
+  --timeout               Also include TIMEOUT jobs
+  --node-fail             Also include NODE_FAIL jobs
+  --all                   Iterate all matching jobs from history
+  --since DATETIME        Only jobs submitted on/after DATETIME
+  --until DATETIME        Only jobs submitted before DATETIME
   -p, --partition PART    Filter to jobs on PARTITION
   -n, --node=NODE         Filter to jobs that ran on NODE
 
+DATETIME accepts: 2026-04-14, yesterday, now-3days, 1h.
+
 ${YELLOW}Examples:${RESET}
   slurmctl resubmit                         Resubmit failed tasks of current job
-  slurmctl -j 12345 resubmit               Resubmit failed tasks of job 12345
+  slurmctl -j 12345 resubmit                Resubmit failed tasks of job 12345
   slurmctl resubmit --all                   Resubmit all failed jobs
+  slurmctl resubmit --all --failed --timeout  Failed or timed-out jobs
   slurmctl resubmit --all -p kolyoz-cuda    Resubmit failed kolyoz-cuda jobs" "$@"
 
 ALL=false
 FILTER_PARTITION=""
 FILTER_NODE=""
+SINCE=""
+UNTIL=""
+STATE_FILTERS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --all)         ALL=true; shift ;;
-    --failed)      shift ;;  # default behavior, accepted for explicitness
+    --failed)      STATE_FILTERS+=(failed); shift ;;
+    --cancelled)   STATE_FILTERS+=(cancelled); shift ;;
+    --timeout)     STATE_FILTERS+=(timeout); shift ;;
+    --node-fail)   STATE_FILTERS+=(node_fail); shift ;;
     -p|--partition) [ $# -lt 2 ] && { echo "error: --partition requires an argument" >&2; exit 1; }; FILTER_PARTITION="$2"; shift 2 ;;
     --partition=*)  FILTER_PARTITION="${1#*=}"; shift ;;
     --node=*)      FILTER_NODE="${1#*=}"; shift ;;
     -n|--node)    [ $# -lt 2 ] && { echo "error: --node requires an argument" >&2; exit 1; }; FILTER_NODE="$2"; shift 2 ;;
+    --since=*)    SINCE="${1#*=}"; shift ;;
+    --since)      [ $# -lt 2 ] && { echo "error: --since requires an argument" >&2; exit 1; }; SINCE="$2"; shift 2 ;;
+    --until=*)    UNTIL="${1#*=}"; shift ;;
+    --until)      [ $# -lt 2 ] && { echo "error: --until requires an argument" >&2; exit 1; }; UNTIL="$2"; shift 2 ;;
     *) break ;;
   esac
 done
+
+# Default state filter is "failed" if none given
+[ "${#STATE_FILTERS[@]}" -eq 0 ] && STATE_FILTERS=(failed)
+STATE_REGEX=$(state_filter_regex "$(IFS=,; echo "${STATE_FILTERS[*]}")")
+
+SINCE_ISO=""
+UNTIL_ISO=""
+[ -n "$SINCE" ] && { SINCE_ISO=$(parse_datetime "$SINCE") || exit 1; }
+[ -n "$UNTIL" ] && { UNTIL_ISO=$(parse_datetime "$UNTIL") || exit 1; }
 
 # --- Resubmit all failed jobs from history ---
 if $ALL; then
@@ -45,10 +74,13 @@ if $ALL; then
   count=0
   while IFS= read -r line; do
     state=$(json_get_state "$line")
-    case "$state" in
-      FAILED*) ;;
-      *) continue ;;
-    esac
+    # Match against split-state regex (FAILED/CANCELLED/TIMEOUT/NODE_FAIL)
+    [[ ! "$state" =~ $STATE_REGEX ]] && continue
+
+    # Date-range filter on "created"
+    created=$(json_get_or_empty "$line" created)
+    if [ -n "$SINCE_ISO" ] && [ -n "$created" ] && [[ "$created" < "$SINCE_ISO" ]]; then continue; fi
+    if [ -n "$UNTIL_ISO" ] && [ -n "$created" ] && [[ "$created" > "$UNTIL_ISO" ]]; then continue; fi
 
     jid=$(json_get "$line" job_id)
     script=$(json_get "$line" script)
@@ -74,7 +106,7 @@ if $ALL; then
 
     printf "${CYAN}Resubmitting${RESET} %s (was job %s)\n" "$script" "$jid"
     bash "$SLURMCTL_SRC_DIR/libexec/slurmctl/submit.sh" "$script"
-    ((count++))
+    count=$((count + 1))
   done < "$HIST_FILE"
 
   printf "${GREEN}Resubmitted${RESET} %d job(s)\n" "$count"

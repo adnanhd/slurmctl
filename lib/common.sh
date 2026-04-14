@@ -69,6 +69,30 @@ get_history_entry() {
   grep "\"job_id\":\"$1\"" "$HIST_FILE" 2>/dev/null | tail -1
 }
 
+# Parse a user datetime string into ISO-8601 for lexicographic comparison
+# against the "created" field in history entries. Accepts anything `date -d`
+# understands: "2026-04-14", "yesterday", "1 hour ago", "now-3days" (→ 3 days ago).
+# Usage: parse_datetime <string>
+parse_datetime() {
+  local s="$1"
+  # Normalize sacct-style "now-3days" / "1h" into something date(1) accepts
+  if [[ "$s" =~ ^now-(.+)$ ]]; then
+    s="${BASH_REMATCH[1]} ago"
+  elif [[ "$s" =~ ^([0-9]+)([smhd])$ ]]; then
+    local n="${BASH_REMATCH[1]}" u="${BASH_REMATCH[2]}"
+    case "$u" in
+      s) s="$n seconds ago" ;;
+      m) s="$n minutes ago" ;;
+      h) s="$n hours ago" ;;
+      d) s="$n days ago" ;;
+    esac
+  fi
+  date -d "$s" -Iseconds 2>/dev/null || {
+    printf "error: invalid datetime: %s\n" "$1" >&2
+    return 1
+  }
+}
+
 # Resolve output pattern: expand %A→jobid, %a→task_id|*, %j→jobid
 # Usage: resolve_output_pattern <pattern> <jobid> [array_index]
 resolve_output_pattern() {

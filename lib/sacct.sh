@@ -6,21 +6,36 @@
 #   sacct_summary <JOBID>          # prints: completed=N running=N pending=N failed=N total=N
 #   sacct_summary_compact <JOBID>  # prints: "12 done, 8 run / 72" or "COMPLETED"
 
+# Map a filter name to a State column regex.
+# Usage: state_filter_regex <filter>
+#   failed|completed|running|pending|cancelled|timeout|node_fail|all
+#   Also accepts comma-separated combinations: failed,cancelled,timeout
+state_filter_regex() {
+  local filter="${1:-all}" out="" part r
+  IFS=',' read -ra parts <<< "$filter"
+  for part in "${parts[@]}"; do
+    case "$part" in
+      failed)    r='FAILED' ;;
+      completed) r='COMPLETED' ;;
+      running)   r='RUNNING' ;;
+      pending)   r='PENDING' ;;
+      cancelled) r='CANCELLED' ;;
+      timeout)   r='TIMEOUT' ;;
+      node_fail) r='NODE_FAIL' ;;
+      all)       echo '.'; return ;;
+      *)         r="$part" ;;
+    esac
+    [ -z "$out" ] && out="$r" || out="${out}|${r}"
+  done
+  echo "$out"
+}
+
 # Get comma-separated task IDs matching a state filter.
 # Usage: get_task_ids <jobid> <filter>
-#   filter: failed, completed, running, pending, all
 get_task_ids() {
   local jobid="$1" filter="${2:-all}"
   local state_grep
-
-  case "$filter" in
-    failed)    state_grep='FAILED|TIMEOUT|CANCELLED|NODE_FAIL' ;;
-    completed) state_grep='COMPLETED' ;;
-    running)   state_grep='RUNNING' ;;
-    pending)   state_grep='PENDING' ;;
-    all)       state_grep='.' ;;
-    *)         state_grep="$filter" ;;
-  esac
+  state_grep=$(state_filter_regex "$filter")
 
   sacct -j "$jobid" --format="JobID%20,State%12" -n | \
     grep -E "${jobid}_[0-9]+" | \

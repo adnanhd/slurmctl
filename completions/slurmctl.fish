@@ -1,7 +1,11 @@
 # Fish completions for slurmctl
 
-# Disable file completions by default
 complete -c slurmctl -f
+
+# Dynamic partition list (cached for session via fish's own memoization is N/A; sinfo is cheap)
+function __slurmctl_partitions
+    sinfo -h -o '%R' 2>/dev/null | sort -u
+end
 
 # Subcommands
 complete -c slurmctl -n __fish_use_subcommand -a submit      -d 'Submit a job'
@@ -41,6 +45,10 @@ complete -c slurmctl -n '__fish_seen_subcommand_from list' -l failed -d 'Failed 
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l completed -d 'Completed tasks'
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l running -d 'Running tasks'
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l pending -d 'Pending tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l cancelled -d 'Cancelled tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l timeout -d 'Timed-out tasks'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l since -d 'Only jobs on/after DATETIME' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l until -d 'Only jobs before DATETIME' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l verbose -s v -d 'Detailed view'
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l sort -d 'Sort by time|node' -xa 'time node'
 
@@ -51,21 +59,30 @@ complete -c slurmctl -n '__fish_seen_subcommand_from status' -l why -d 'Why is j
 
 # cancel
 complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l all -d 'Cancel all project jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l pending -d 'Only pending jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l running -d 'Only running jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l since -d 'Only jobs on/after DATETIME' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l until -d 'Only jobs before DATETIME' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l node -s n -d 'Cancel jobs on node' -x
-complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l partition -s p -d 'Cancel jobs on partition' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l partition -s p -d 'Cancel jobs on partition' -xa '(__slurmctl_partitions)'
 
 # resubmit
-complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l failed -d 'Resubmit failed tasks (default)'
-complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l all -d 'Resubmit all failed jobs from history'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l failed -d 'Resubmit FAILED jobs (default)'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l cancelled -d 'Include CANCELLED jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l timeout -d 'Include TIMEOUT jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l node-fail -d 'Include NODE_FAIL jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l all -d 'Iterate history'
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l since -d 'Only jobs on/after DATETIME' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l until -d 'Only jobs before DATETIME' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l node -s n -d 'Filter by node' -x
-complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l partition -s p -d 'Filter by partition' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from resubmit' -l partition -s p -d 'Filter by partition' -xa '(__slurmctl_partitions)'
 
 # tail/cat/head/less/watch
 complete -c slurmctl -n '__fish_seen_subcommand_from tail cat head less watch' -l no-out -d 'Show only stderr'
 complete -c slurmctl -n '__fish_seen_subcommand_from tail cat head less watch' -l no-err -d 'Show only stdout'
 
 # nodes
-complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l partition -s p -d 'Filter by partition' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l partition -s p -d 'Filter by partition' -xa '(__slurmctl_partitions)'
 complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l verbose -s v -d 'Detailed view'
 complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l group-by -d 'Group mode' -xa 'gpu cpu mem job'
 
@@ -73,5 +90,13 @@ complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l group-by -d 'Grou
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l all -d 'Include archived'
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l oneline -d 'Compact format'
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l script -d 'Show script paths'
-complete -c slurmctl -n '__fish_seen_subcommand_from history' -l state -d 'Filter by state' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l failed -d 'Only FAILED jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l completed -d 'Only COMPLETED jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l running -d 'Only RUNNING jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l pending -d 'Only PENDING jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l cancelled -d 'Only CANCELLED jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l timeout -d 'Only TIMEOUT jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l node-fail -d 'Only NODE_FAIL jobs'
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l since -d 'Only jobs on/after DATETIME' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from history' -l until -d 'Only jobs before DATETIME' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -s n -d 'Show last N entries' -x
