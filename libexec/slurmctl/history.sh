@@ -111,12 +111,15 @@ for ((i=${#lines[@]}-1; i>=0; i--)); do
   if [ -n "$UNTIL_ISO" ] && [ -n "$created" ] && [[ "$created" > "$UNTIL_ISO" ]]; then continue; fi
 
   if $ONELINE; then
-    printf "${GREEN}%s${RESET} %-20s %s\n" "$jid" "$script" "$(color_state "$state")"
+    printf "${GREEN}%s${RESET} ${YELLOW}%s${RESET} %-20s %s\n" "$jid" "${commit:0:7}" "$(basename "$script")" "$(color_state "$state")"
   else
     printf "${GREEN}%s${RESET} %s\n" "$jid" "$(color_state "$state")"
     printf "    Script: %s\n" "$script"
     printf "    Date:   %s\n" "$created"
-    [ -n "$commit" ] && printf "    Commit: ${YELLOW}%s${RESET}\n" "$commit"
+    if [ -n "$commit" ]; then
+      full_commit=$(git rev-parse "$commit" 2>/dev/null || echo "$commit")
+      printf "    Commit: ${YELLOW}%s${RESET}\n" "$full_commit"
+    fi
     [ -n "$dep" ] && printf "    After:  %s\n" "$dep"
     echo ""
   fi

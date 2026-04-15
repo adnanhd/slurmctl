@@ -196,7 +196,7 @@ if [ -z "$JID" ]; then
 fi
 
 REPO=$(git remote get-url origin 2>/dev/null || echo "")
-COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "")
+COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "")
 BRANCH=$(git branch --show-current 2>/dev/null || echo "")
 
 # Build JSON — escape values that may contain quotes/backslashes
