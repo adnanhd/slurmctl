@@ -50,7 +50,8 @@ get_failed_task_ids() { get_task_ids "$1" failed; }
 
 sacct_summary() {
   local jobid="$1"
-  sacct -j "$jobid" -n --format='JobID,State,ExitCode' 2>/dev/null \
+  local sacct_out squeue_pend
+  sacct_out=$(sacct -j "$jobid" -n --format='JobID,State,ExitCode' 2>/dev/null \
     | grep -v '\.' \
     | awk '
       /./          { total++ }
@@ -64,7 +65,24 @@ sacct_summary() {
         printf "completed=%d running=%d pending=%d failed=%d total=%d\n",
           done+0, run+0, pend+0, fail+0, total+0
       }
-    '
+    ')
+
+  # sacct counts compressed array ranges (e.g. 123_[5-44]) as 1 entry.
+  # Use squeue -r to get the real pending count for array jobs.
+  local completed running pending failed total
+  eval "$sacct_out"
+  if [ "$total" -gt 1 ]; then
+    local real_pend
+    real_pend=$(squeue -j "$jobid" -h -t PD -r -o "%i" 2>/dev/null \
+      | grep -c "${jobid}_" || true)
+    if [ "$real_pend" -gt "$pending" ]; then
+      total=$((total - pending + real_pend))
+      pending=$real_pend
+      sacct_out="completed=$completed running=$running pending=$pending failed=$failed total=$total"
+    fi
+  fi
+
+  echo "$sacct_out"
 }
 
 sacct_summary_compact() {

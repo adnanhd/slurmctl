@@ -96,7 +96,7 @@ for ((i=${#lines[@]}-1; i>=0; i--)); do
   dep=$(json_get_or_empty "$line" depends_on)
 
   # Show DEPENDING instead of PENDING for jobs waiting on a dependency
-  if [ -n "$dep" ] && echo "$state" | grep -qi "pend"; then
+  if [ -n "$dep" ] && [ "$state" = "PENDING" ]; then
     state="DEPENDING (after $dep)"
   fi
 
