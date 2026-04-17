@@ -19,7 +19,18 @@ gpu_monitor_start() {
 
   mkdir -p "$log_dir"
 
-  nvidia-smi --query-gpu=timestamp,index,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw \
+  # Scope sampling to this job's allocated GPUs only. Otherwise on shared
+  # nodes nvidia-smi reports all physical GPUs and dilutes util averages
+  # (a 1-GPU job on a 4-GPU node looks like it's using 25% when actually 100%).
+  local nvsmi_scope=""
+  if [ -n "${CUDA_VISIBLE_DEVICES:-}" ]; then
+    nvsmi_scope="-i $CUDA_VISIBLE_DEVICES"
+  elif [ -n "${SLURM_JOB_GPUS:-}" ]; then
+    nvsmi_scope="-i $SLURM_JOB_GPUS"
+  fi
+
+  nvidia-smi $nvsmi_scope \
+    --query-gpu=timestamp,index,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw \
     --format=csv,noheader,nounits \
     -l "$SLURMCTL_GPU_INTERVAL" > "$csv_path" 2>/dev/null &
   SLURMCTL_GPU_PID=$!

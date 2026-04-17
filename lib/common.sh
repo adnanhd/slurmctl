@@ -17,11 +17,15 @@ fi
 
 # Config — single directory for all slurm output, error, and log files
 SLURMCTL_LOG_DIR="${SLURMCTL_LOG_DIR:-$HOME/.slurm/log}"
+export SLURMCTL_LOG_DIR
 mkdir -p "$SLURMCTL_LOG_DIR"
 
-# Per-project history file: encode project path into filename
+# Per-project history file: encode project path into filename.
+# Exported so libexec scripts invoked via subshell (e.g. resubmit → submit)
+# inherit the computed path.
 _project_key=$(echo "${SLURMCTL_PROJECT_ROOT:-$PWD}" | tr '/' '-')
 HIST_FILE="${SLURMCTL_LOG_DIR}/${_project_key}.slurm.log"
+export HIST_FILE
 
 # Extract a JSON string field: json_get '{"k":"v"}' k → v
 json_get() {
