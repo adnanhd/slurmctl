@@ -196,10 +196,13 @@ if [ "$GROUP_BY" = "gpu" ] || [ "$GROUP_BY" = "cpu" ] || [ "$GROUP_BY" = "mem" ]
     # mem from sinfo is in MiB
     mem_total_gib = int(mem / 1024)
 
-    total_cpu_idle += cpu_idle; total_cpu += cpu_total_v
-    total_gpu_free += gpu_free; total_gpu += gpu_total_v
+    # Count totals, but exclude down/drain nodes from "free/idle"
+    # (their resources are unallocatable, not available).
+    is_down = (state ~ /down|drain/)
+    total_cpu += cpu_total_v; total_gpu += gpu_total_v
+    if (!is_down) { total_cpu_idle += cpu_idle; total_gpu_free += gpu_free }
 
-    if (state ~ /down|drain/) key = "down"
+    if (is_down) key = "down"
     else if (mode == "gpu") key = gpu_free + 0
     else if (mode == "cpu") key = cpu_idle + 0
     else if (mode == "mem") key = mem_total_gib + 0
