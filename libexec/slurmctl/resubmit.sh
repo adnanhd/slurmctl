@@ -116,7 +116,11 @@ fi
 # --- Resubmit failed tasks of a specific job ---
 JOBID=$(require_jobid)
 
-FAILED=$(get_task_ids "$JOBID" failed || true)
+# Use the user's state filters (--failed/--timeout/--cancelled/--node-fail).
+# Defaults to "failed" from earlier in the script. Joined with "," so
+# state_filter_regex returns a multi-state alternation.
+_state_filter_arg=$(IFS=,; echo "${STATE_FILTERS[*]}")
+FAILED=$(get_task_ids "$JOBID" "$_state_filter_arg" || true)
 if [ -z "$FAILED" ]; then
   printf "${GREEN}No failed tasks to resubmit${RESET}\n"
   exit 0
