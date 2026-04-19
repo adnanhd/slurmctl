@@ -72,11 +72,27 @@ if $CANCEL_ALL; then
   fi
 
   count=0
+  # For state-filtered cancels, build the scancel --state flag once.
+  scancel_state_upper=""
+  if [ -n "$state_regex" ]; then
+    scancel_state_upper=$(echo "${STATE_FILTERS[0]}" | tr '[:lower:]' '[:upper:]')
+  fi
+
   while IFS= read -r line; do
+    # For state-filtered cancels: only skip truly terminal/archived entries
+    # (history state "cancelled" does NOT imply the job's tasks are gone —
+    # a prior `cancel --all` may have marked history but left pending tails
+    # of mixed-state arrays alive, which we still need to be able to cancel).
     state=$(json_get_state "$line")
-    case "$state" in
-      cancelled|archived|COMPLETED|FAILED*|TIMEOUT*|CANCELLED*|resubmitted) continue ;;
-    esac
+    if [ -n "$state_regex" ]; then
+      case "$state" in
+        archived|COMPLETED|FAILED*|TIMEOUT*|CANCELLED*|resubmitted) continue ;;
+      esac
+    else
+      case "$state" in
+        cancelled|archived|COMPLETED|FAILED*|TIMEOUT*|CANCELLED*|resubmitted) continue ;;
+      esac
+    fi
 
     # Date-range filter on "created"
     created=$(json_get_or_empty "$line" created)
@@ -85,19 +101,28 @@ if $CANCEL_ALL; then
 
     jid=$(json_get "$line" job_id)
 
-    # Live state filter (squeue) for --pending/--running
     if [ -n "$state_regex" ]; then
-      live=$(squeue -j "$jid" -h -o '%T' 2>/dev/null | head -1)
+      # Only act if the job currently has tasks in the requested state.
+      # squeue exits non-zero when no tasks match; set -e would abort the loop,
+      # and `| head -1` + pipefail + SIGPIPE has the same issue. `|| true`
+      # swallows the non-match exit, and empty `$live` drives the continue.
+      live=$(squeue -j "$jid" -h -t "$scancel_state_upper" -o '%A' 2>/dev/null || true)
       [ -z "$live" ] && continue
-      [[ ! "$live" =~ $state_regex ]] && continue
+      printf "${RED}Cancelling${RESET} %s tasks of job %s\n" "$scancel_state_upper" "$jid"
+      scancel --state="$scancel_state_upper" "$jid" 2>/dev/null
+      count=$((count + 1))
+    else
+      printf "${RED}Cancelling${RESET} job %s\n" "$jid"
+      scancel "$jid" 2>/dev/null
+      count=$((count + 1))
     fi
-
-    printf "${RED}Cancelling${RESET} job %s\n" "$jid"
-    scancel "$jid" 2>/dev/null
-    count=$((count + 1))
   done < "$HIST_FILE"
 
-  if [ "$count" -gt 0 ]; then
+  # History: only mark as "cancelled" when the whole job was cancelled.
+  # State-filtered cancels (--pending/--running) leave some tasks alive, so
+  # the job is not fully cancelled — leave history untouched and let
+  # `slurmctl update` refresh state from sacct later.
+  if [ "$count" -gt 0 ] && [ -z "$state_regex" ]; then
     while IFS= read -r line; do
       state=$(json_get_state "$line")
       case "$state" in
