@@ -97,6 +97,48 @@ parse_datetime() {
   }
 }
 
+# Binary-search a file sorted ascending by JSON field $2 for the smallest line
+# number whose value is >= target (lower bound). Returns a number in [1, total+1];
+# total+1 means no line satisfies the condition.
+# Usage: bsearch_lower <file> <field> <target>
+bsearch_lower() {
+  local file="$1" field="$2" target="$3"
+  local total lo hi mid line val
+  total=$(wc -l < "$file")
+  lo=1; hi=$((total + 1))
+  while [ $lo -lt $hi ]; do
+    mid=$(( (lo + hi) / 2 ))
+    line=$(awk -v n="$mid" 'NR==n {print; exit}' "$file")
+    val=$(json_get_or_empty "$line" "$field")
+    if [ -n "$val" ] && [[ ! "$val" < "$target" ]]; then
+      hi=$mid
+    else
+      lo=$((mid + 1))
+    fi
+  done
+  echo "$lo"
+}
+
+# Same, but smallest line number whose value is > target (upper bound).
+# Usage: bsearch_upper <file> <field> <target>
+bsearch_upper() {
+  local file="$1" field="$2" target="$3"
+  local total lo hi mid line val
+  total=$(wc -l < "$file")
+  lo=1; hi=$((total + 1))
+  while [ $lo -lt $hi ]; do
+    mid=$(( (lo + hi) / 2 ))
+    line=$(awk -v n="$mid" 'NR==n {print; exit}' "$file")
+    val=$(json_get_or_empty "$line" "$field")
+    if [ -n "$val" ] && [[ "$val" > "$target" ]]; then
+      hi=$mid
+    else
+      lo=$((mid + 1))
+    fi
+  done
+  echo "$lo"
+}
+
 # Resolve output pattern: expand %A→jobid, %a→task_id|*, %j→jobid
 # Usage: resolve_output_pattern <pattern> <jobid> [array_index]
 resolve_output_pattern() {

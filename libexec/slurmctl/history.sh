@@ -78,11 +78,21 @@ if [ ! -f "$HIST_FILE" ]; then
   exit 0
 fi
 
-# Read lines in reverse (newest first, like git log)
+# Slice range: [slice_lo, slice_hi]. Binary-search on the chronologically sorted
+# HIST_FILE to skip lines outside the SINCE/UNTIL window entirely.
+total_lines=$(wc -l < "$HIST_FILE")
+slice_lo=1
+slice_hi=$total_lines
+[ -n "$SINCE_ISO" ] && slice_lo=$(bsearch_lower "$HIST_FILE" created "$SINCE_ISO")
+[ -n "$UNTIL_ISO" ] && slice_hi=$(( $(bsearch_upper "$HIST_FILE" created "$UNTIL_ISO") - 1 ))
+
+# Read the slice (newest first via tac)
 lines=()
-while IFS= read -r line; do
-  lines+=("$line")
-done < "$HIST_FILE"
+if [ "$slice_lo" -le "$slice_hi" ]; then
+  while IFS= read -r line; do
+    lines+=("$line")
+  done < <(sed -n "${slice_lo},${slice_hi}p" "$HIST_FILE")
+fi
 
 count=0
 for ((i=${#lines[@]}-1; i>=0; i--)); do
@@ -107,8 +117,6 @@ for ((i=${#lines[@]}-1; i>=0; i--)); do
   if [ -n "$FILTER_SCRIPT" ]; then
     echo "$script" | grep -qi "$FILTER_SCRIPT" || continue
   fi
-  if [ -n "$SINCE_ISO" ] && [ -n "$created" ] && [[ "$created" < "$SINCE_ISO" ]]; then continue; fi
-  if [ -n "$UNTIL_ISO" ] && [ -n "$created" ] && [[ "$created" > "$UNTIL_ISO" ]]; then continue; fi
 
   if $ONELINE; then
     printf "${GREEN}%s${RESET} ${YELLOW}%s${RESET} %-20s %s\n" "$jid" "${commit:0:7}" "$(basename "$script")" "$(color_state "$state")"
