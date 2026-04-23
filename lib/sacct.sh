@@ -85,6 +85,62 @@ sacct_summary() {
   echo "$sacct_out"
 }
 
+# Batch version of sacct_summary_compact.
+# Args: comma-separated job IDs
+# Output: one "JOBID compact_state" line per job found in sacct
+batch_states() {
+  local jids="$1"
+  [ -z "$jids" ] && return
+
+  # One sacct call for all IDs — aggregate per base job ID in awk
+  local sacct_counts
+  sacct_counts=$(sacct -j "$jids" --format="JobID,State,ExitCode" -n 2>/dev/null \
+    | grep -v '\.' \
+    | awk '
+      NF >= 2 {
+        jobid = $1; state = $2; exitcode = $3
+        base = jobid; sub(/_[0-9]+$/, "", base)
+        if (!(base in seen)) { last[base] = state; seen[base] = 1 }
+        total[base]++
+        if      (state == "COMPLETED" && exitcode == "0:0") done[base]++
+        else if (state ~ /^(CANCELLED|FAILED|TIMEOUT|BOOT_FAIL|OUT_OF_MEMORY|NODE_FAIL|DEADLINE|PREEMPTED|REVOKED)/) fail[base]++
+        else if (state == "RUNNING") run[base]++
+        else if (state == "PENDING") pend[base]++
+      }
+      END {
+        for (b in total)
+          printf "%s %d %d %d %d %d %s\n", b, done[b]+0, run[b]+0, pend[b]+0, fail[b]+0, total[b]+0, last[b]
+      }
+    ')
+
+  # One squeue call for array jobs to get real pending counts
+  local array_ids squeue_counts=""
+  array_ids=$(awk '$6 > 1 {printf "%s,", $1}' <<< "$sacct_counts" | sed 's/,$//')
+  if [ -n "$array_ids" ]; then
+    squeue_counts=$(squeue -j "$array_ids" -h -t PD -r -o "%i" 2>/dev/null \
+      | grep -oE '^[0-9]+' | sort | uniq -c | awk '{print $2, $1}')
+  fi
+
+  # Merge squeue corrections and emit compact state strings
+  awk 'NR == FNR { if (NF == 2) sq[$1] = $2+0; next }
+  {
+    base=$1; done=$2; run=$3; pend=$4; fail=$5; total=$6; lst=$7
+    if (total > 1 && (base in sq) && sq[base] > pend) {
+      total = total - pend + sq[base]; pend = sq[base]
+    }
+    if (total <= 1) {
+      print base, lst
+    } else {
+      p = ""
+      if (done > 0) p = done " done"
+      if (run  > 0) { if (p != "") p = p ", "; p = p run " run" }
+      if (pend > 0) { if (p != "") p = p ", "; p = p pend " pend" }
+      if (fail > 0) { if (p != "") p = p ", "; p = p fail " fail" }
+      print base, p " / " total
+    }
+  }' <(printf '%s\n' "$squeue_counts") <(printf '%s\n' "$sacct_counts")
+}
+
 sacct_summary_compact() {
   local jobid="$1"
   local line
