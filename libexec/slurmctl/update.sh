@@ -29,7 +29,15 @@ _is_terminal() {
   esac
 }
 
-current_line=0
+# Pre-checkpoint lines are confirmed terminal — copy them directly, no loop
+if [ "$checkpoint_line" -gt 1 ]; then
+  head -n $((checkpoint_line - 1)) "$HIST_FILE" > "${HIST_FILE}.tmp"
+else
+  : > "${HIST_FILE}.tmp"
+fi
+
+# Loop starts at the checkpoint; everything above has already been written
+current_line=$((checkpoint_line - 1))
 first_active_line=0
 
 while IFS= read -r line; do
@@ -37,12 +45,6 @@ while IFS= read -r line; do
 
   # Strip checkpoint marker — we'll re-add it to the correct line after the loop
   line=$(echo "$line" | sed 's/, "checkpoint":true}/}/')
-
-  # Before the checkpoint every entry is known-terminal; pass through untouched
-  if [ "$current_line" -lt "$checkpoint_line" ]; then
-    echo "$line"
-    continue
-  fi
 
   old_state=$(json_get_state "$line")
 
@@ -61,7 +63,7 @@ while IFS= read -r line; do
   fi
 
   echo "$line"
-done < "$HIST_FILE" > "${HIST_FILE}.tmp"
+done < <(tail -n +$checkpoint_line "$HIST_FILE") >> "${HIST_FILE}.tmp"
 
 # Mark the oldest still-active entry so the next run can skip above it
 if [ "$first_active_line" -gt 0 ]; then
