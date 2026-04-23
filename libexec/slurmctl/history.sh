@@ -48,7 +48,7 @@ while [ $# -gt 0 ]; do
     --timeout)          STATE_FILTERS+=(timeout); shift ;;
     --node-fail)        STATE_FILTERS+=(node_fail); shift ;;
     --script=*)         FILTER_SCRIPT="${1#*=}"; shift ;;
-    --script)           FILTER_SCRIPT="$2"; shift 2 ;;
+    --script)           [ $# -lt 2 ] && { echo "error: --script requires an argument" >&2; exit 1; }; FILTER_SCRIPT="$2"; shift 2 ;;
     --since=*)          SINCE="${1#*=}"; shift ;;
     --since)            [ $# -lt 2 ] && { echo "error: --since requires an argument" >&2; exit 1; }; SINCE="$2"; shift 2 ;;
     --until=*)          UNTIL="${1#*=}"; shift ;;
