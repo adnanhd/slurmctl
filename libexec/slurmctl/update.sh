@@ -39,12 +39,18 @@ fi
 # Load post-checkpoint lines, stripping the checkpoint marker in one pass
 mapfile -t post_lines < <(tail -n +$checkpoint_line "$HIST_FILE" | sed 's/, "checkpoint":true}/}/')
 
-# Phase 1: collect active job IDs — no sacct calls yet
+# Phase 1: collect active job IDs — no sacct calls yet.
+# Only accept well-formed numeric IDs (or N_M array tasks) so a malformed
+# history line can't smuggle junk into the sacct -j batch (sacct fails
+# atomically on any bad token, producing zero output).
 active_jids=()
 for line in "${post_lines[@]}"; do
   state=$(json_get_state "$line")
   if ! _is_terminal "$state"; then
-    active_jids+=("$(json_get "$line" job_id)")
+    jid="$(json_get "$line" job_id)"
+    if [[ "$jid" =~ ^[0-9]+(_[0-9]+)?$ ]]; then
+      active_jids+=("$jid")
+    fi
   fi
 done
 
@@ -52,9 +58,14 @@ done
 declare -A new_states
 if [ ${#active_jids[@]} -gt 0 ]; then
   jids_csv=$(IFS=,; echo "${active_jids[*]}")
-  while read -r jid rest; do
-    new_states["$jid"]="$rest"
-  done < <(batch_states "$jids_csv")
+  batch_out=$(batch_states "$jids_csv")
+  if [ -z "$batch_out" ]; then
+    printf "${YELLOW}Warning${RESET}: sacct returned no data for %d active jobs\n" "${#active_jids[@]}" >&2
+  else
+    while read -r jid rest; do
+      new_states["$jid"]="$rest"
+    done <<< "$batch_out"
+  fi
 fi
 
 # Phase 3: rewrite post-checkpoint lines with updated states

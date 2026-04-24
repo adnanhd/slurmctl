@@ -28,8 +28,9 @@ HIST_FILE="${SLURMCTL_LOG_DIR}/${_project_key}.slurm.log"
 export HIST_FILE
 
 # Extract a JSON string field: json_get '{"k":"v"}' k → v
+# Returns empty if the field is not present (sed -n + p suppresses no-match echo).
 json_get() {
-  echo "$1" | sed 's/.*"'"$2"'":"\([^"]*\)".*/\1/'
+  echo "$1" | sed -n 's/.*"'"$2"'":"\([^"]*\)".*/\1/p'
 }
 
 # Extract a JSON string field, returning "" if field is missing
