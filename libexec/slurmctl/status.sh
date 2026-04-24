@@ -131,17 +131,17 @@ if $EFF; then
     printf "\n"
   }'
 
-  # GPU stats from slurmctl monitoring
-  gpu_summaries=$(ls "$SLURMCTL_LOG_DIR/${JOBID}"_*_gpu.summary 2>/dev/null)
+  # GPU stats from slurmctl monitoring (summary is prepended as `# key=value` to the CSV)
+  gpu_summaries=$(ls "$SLURMCTL_LOG_DIR/${JOBID}"_*_gpu.csv 2>/dev/null)
   if [ -n "$gpu_summaries" ]; then
     awk -F= '
-    /^gpu_util_avg/    { sum_u += $2; nu++ }
-    /^gpu_util_max/    { if ($2+0 > mu) mu = $2 }
-    /^gpu_mem_avg_mib/ { sum_m += $2; nm++ }
-    /^gpu_mem_max_mib/ { if ($2+0 > mm) mm = $2 }
-    /^gpu_mem_total/   { mt = $2 }
-    /^gpu_temp_max/    { if ($2+0 > mtemp) mtemp = $2 }
-    /^gpu_power_avg/   { sum_p += $2; np++ }
+    /^# gpu_util_avg/    { sum_u += $2; nu++ }
+    /^# gpu_util_max/    { if ($2+0 > mu) mu = $2 }
+    /^# gpu_mem_avg_mib/ { sum_m += $2; nm++ }
+    /^# gpu_mem_max_mib/ { if ($2+0 > mm) mm = $2 }
+    /^# gpu_mem_total/   { mt = $2 }
+    /^# gpu_temp_max/    { if ($2+0 > mtemp) mtemp = $2 }
+    /^# gpu_power_avg/   { sum_p += $2; np++ }
     END {
       if (nu > 0) printf "  GPU util:  avg %.1f%%, max %.0f%%\n", sum_u/nu, mu
       if (nm > 0) {

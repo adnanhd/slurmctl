@@ -36,10 +36,9 @@ gpu_monitor_start() {
   SLURMCTL_GPU_PID=$!
   export SLURMCTL_GPU_PID
   export SLURMCTL_GPU_CSV="$csv_path"
-  export SLURMCTL_GPU_SUMMARY="${log_dir}/${job_id}_${task_id}_gpu.summary"
 }
 
-# Stop GPU monitoring and write summary.
+# Stop GPU monitoring and prepend summary as `# key=value` comments to the CSV.
 gpu_monitor_stop() {
   if [ -z "${SLURMCTL_GPU_PID:-}" ]; then
     return 0
@@ -49,36 +48,38 @@ gpu_monitor_stop() {
   wait "$SLURMCTL_GPU_PID" 2>/dev/null
 
   local csv="$SLURMCTL_GPU_CSV"
-  local summary="$SLURMCTL_GPU_SUMMARY"
 
   if [ ! -s "$csv" ]; then
     return 0
   fi
 
   # Parse CSV: timestamp, gpu_idx, util%, mem_used_MiB, mem_total_MiB, temp_C, power_W
-  awk -F', ' '
-  NF >= 5 {
-    n++
-    u  += $3; if ($3 > mu) mu = $3
-    m  += $4; if ($4 > mm) mm = $4
-    mt  = $5
-    if (NF >= 6) { t += $6; if ($6 > mt_max) mt_max = $6 }
-    if (NF >= 7) { p += $7; if ($7 > mp) mp = $7 }
-  }
-  END {
-    if (n == 0) exit
-    printf "samples=%d\n", n
-    printf "gpu_util_avg=%.1f\n", u/n
-    printf "gpu_util_max=%.0f\n", mu
-    printf "gpu_mem_avg_mib=%.0f\n", m/n
-    printf "gpu_mem_max_mib=%.0f\n", mm
-    printf "gpu_mem_total_mib=%.0f\n", mt
-    printf "gpu_mem_pct=%.1f\n", (mm/mt)*100
-    if (NF >= 6) printf "gpu_temp_avg=%.0f\n", t/n
-    if (NF >= 6) printf "gpu_temp_max=%.0f\n", mt_max
-    if (NF >= 7) printf "gpu_power_avg=%.0f\n", p/n
-    if (NF >= 7) printf "gpu_power_max=%.0f\n", mp
-  }' "$csv" > "$summary"
+  {
+    awk -F', ' '
+    NF >= 5 {
+      n++
+      u  += $3; if ($3 > mu) mu = $3
+      m  += $4; if ($4 > mm) mm = $4
+      mt  = $5
+      if (NF >= 6) { t += $6; if ($6 > mt_max) mt_max = $6 }
+      if (NF >= 7) { p += $7; if ($7 > mp) mp = $7 }
+    }
+    END {
+      if (n == 0) exit
+      printf "# samples=%d\n", n
+      printf "# gpu_util_avg=%.1f\n", u/n
+      printf "# gpu_util_max=%.0f\n", mu
+      printf "# gpu_mem_avg_mib=%.0f\n", m/n
+      printf "# gpu_mem_max_mib=%.0f\n", mm
+      printf "# gpu_mem_total_mib=%.0f\n", mt
+      printf "# gpu_mem_pct=%.1f\n", (mm/mt)*100
+      if (NF >= 6) printf "# gpu_temp_avg=%.0f\n", t/n
+      if (NF >= 6) printf "# gpu_temp_max=%.0f\n", mt_max
+      if (NF >= 7) printf "# gpu_power_avg=%.0f\n", p/n
+      if (NF >= 7) printf "# gpu_power_max=%.0f\n", mp
+    }' "$csv"
+    cat "$csv"
+  } > "${csv}.tmp" && mv "${csv}.tmp" "$csv"
 }
 
 # Generate a wrapper script that monitors GPU around the real job.
