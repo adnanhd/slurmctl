@@ -31,28 +31,19 @@ ${YELLOW}Examples:${RESET}
 N=10
 SHOW_ALL=false
 ONELINE=false
-STATE_FILTERS=()
 FILTER_SCRIPT=""
-SINCE=""
-UNTIL=""
+FILTER_STATES=()
+FILTER_SINCE=""
+FILTER_UNTIL=""
 
 while [ $# -gt 0 ]; do
+  # Shared state/window flags (--failed/--node-fail/.../--since/--until)
+  if filter_consume "$@"; then shift "$FILTER_CONSUMED"; continue; fi
   case "$1" in
     --all|all)          SHOW_ALL=true; shift ;;
     --oneline)          ONELINE=true; shift ;;
-    --failed)           STATE_FILTERS+=(failed); shift ;;
-    --completed)        STATE_FILTERS+=(completed); shift ;;
-    --running)          STATE_FILTERS+=(running); shift ;;
-    --pending)          STATE_FILTERS+=(pending); shift ;;
-    --cancelled)        STATE_FILTERS+=(cancelled); shift ;;
-    --timeout)          STATE_FILTERS+=(timeout); shift ;;
-    --node-fail)        STATE_FILTERS+=(node_fail); shift ;;
     --script=*)         FILTER_SCRIPT="${1#*=}"; shift ;;
     --script)           [ $# -lt 2 ] && { echo "error: --script requires an argument" >&2; exit 1; }; FILTER_SCRIPT="$2"; shift 2 ;;
-    --since=*)          SINCE="${1#*=}"; shift ;;
-    --since)            [ $# -lt 2 ] && { echo "error: --since requires an argument" >&2; exit 1; }; SINCE="$2"; shift 2 ;;
-    --until=*)          UNTIL="${1#*=}"; shift ;;
-    --until)            [ $# -lt 2 ] && { echo "error: --until requires an argument" >&2; exit 1; }; UNTIL="$2"; shift 2 ;;
     -n)                 N="$2"; shift 2 ;;
     0)                  SHOW_ALL=true; shift ;;
     -[0-9]*)            N="${1#-}"; shift ;;
@@ -62,16 +53,16 @@ while [ $# -gt 0 ]; do
 done
 
 STATE_REGEX=""
-if [ "${#STATE_FILTERS[@]}" -gt 0 ]; then
-  STATE_REGEX=$(state_filter_regex "$(IFS=,; echo "${STATE_FILTERS[*]}")")
+if [ "${#FILTER_STATES[@]}" -gt 0 ]; then
+  STATE_REGEX=$(state_filter_regex "$(filter_states_csv)")
   # Any state filter implies --all, otherwise -n 10 may cut before finding matches
   SHOW_ALL=true
 fi
 
 SINCE_ISO=""
 UNTIL_ISO=""
-[ -n "$SINCE" ] && { SINCE_ISO=$(parse_datetime "$SINCE") || exit 1; SHOW_ALL=true; }
-[ -n "$UNTIL" ] && { UNTIL_ISO=$(parse_datetime "$UNTIL") || exit 1; SHOW_ALL=true; }
+[ -n "$FILTER_SINCE" ] && { SINCE_ISO=$(parse_datetime "$FILTER_SINCE") || exit 1; SHOW_ALL=true; }
+[ -n "$FILTER_UNTIL" ] && { UNTIL_ISO=$(parse_datetime "$FILTER_UNTIL") || exit 1; SHOW_ALL=true; }
 
 if [ ! -f "$HIST_FILE" ]; then
   printf "${YELLOW}No history${RESET}\n"

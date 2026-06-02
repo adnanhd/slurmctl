@@ -243,6 +243,18 @@ cmd_help() {
   done
 }
 
+# Colorize Slurm state words in a stream (stdin → stdout). Replaces the
+# per-endpoint chains of `sed "s/COMPLETED/.../"`. The color vars are literal
+# escape sequences (no slashes), so they embed directly in the sed RHS.
+colorize_states() {
+  sed -e "s/COMPLETED/${GREEN}COMPLETED${RESET}/g" \
+      -e "s/FAILED/${RED}FAILED${RESET}/g" \
+      -e "s/RUNNING/${YELLOW}RUNNING${RESET}/g" \
+      -e "s/PENDING/${BLUE}PENDING${RESET}/g" \
+      -e "s/TIMEOUT/${RED}TIMEOUT${RESET}/g" \
+      -e "s/CANCELLED/${RED}CANCELLED${RESET}/g"
+}
+
 # Color a state string for display
 color_state() {
   local state="$1"

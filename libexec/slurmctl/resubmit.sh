@@ -96,13 +96,13 @@ if $ALL; then
 
     # Apply partition filter
     if [ -n "$FILTER_PARTITION" ]; then
-      job_part=$(sacct -j "$jid" --format=Partition -n -P 2>/dev/null | head -1)
+      job_part=$(sacct_job_field "$jid" Partition)
       [ "$job_part" != "$FILTER_PARTITION" ] && continue
     fi
 
     # Apply node filter
     if [ -n "$FILTER_NODE" ]; then
-      job_nodes=$(sacct -j "$jid" --format=NodeList -n -P 2>/dev/null | head -1)
+      job_nodes=$(sacct_job_nodelist "$jid")
       [[ "$job_nodes" != *"$FILTER_NODE"* ]] && continue
     fi
 

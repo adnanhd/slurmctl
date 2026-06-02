@@ -9,8 +9,10 @@ export SLURMCTL_SRC_DIR
 SLURMCTL_PROJECT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
 export SLURMCTL_PROJECT_ROOT
 
-# Source common library
+# Source shared libraries: common helpers + one thin API per Slurm CLI tool.
 source "$SLURMCTL_SRC_DIR/lib/common.sh"
+source "$SLURMCTL_SRC_DIR/lib/squeue.sh"
+source "$SLURMCTL_SRC_DIR/lib/scontrol.sh"
 source "$SLURMCTL_SRC_DIR/lib/sacct.sh"
 source "$SLURMCTL_SRC_DIR/lib/graphic.sh"
 

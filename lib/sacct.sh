@@ -1,5 +1,16 @@
 #!/bin/bash
-# sacct.sh — single sacct call with awk-based parsing
+# sacct.sh — thin API over the `sacct` CLI plus the slurmctl state-filter model.
+#
+# This module owns three things:
+#   1. The state taxonomy (FAIL/RETRYABLE regexes, state_filter_regex) and the
+#      shared --failed/--timeout/... flag parser (filter_consume).
+#   2. sacct task queries: IDs by state (get_task_ids), the colorized per-task
+#      table (sacct_task_table), summaries (sacct_summary/batch_states), and
+#      accounting/efficiency rows.
+#   3. is_array_job — the array-vs-single test used across endpoints.
+#
+# Real pending counts for array jobs come from lib/squeue.sh (squeue -r expands
+# the compressed ranges sacct collapses); that module is sourced alongside this.
 #
 # Usage:
 #   source lib/sacct.sh
@@ -41,6 +52,53 @@ state_filter_regex() {
     [ -z "$out" ] && out="$r" || out="${out}|${r}"
   done
   echo "$out"
+}
+
+# Shared parser for the state/window filter flags that every endpoint accepts:
+#   --failed --completed --running --pending --cancelled --timeout --node-fail
+#   --retryable --since[=]DT --until[=]DT
+# Call as the FIRST thing in an endpoint's arg loop:
+#
+#   FILTER_STATES=(); FILTER_SINCE=""; FILTER_UNTIL=""
+#   while [ $# -gt 0 ]; do
+#     if filter_consume "$@"; then shift "$FILTER_CONSUMED"; continue; fi
+#     case "$1" in  ...command-specific flags...  esac
+#   done
+#
+# On a recognized leading flag it records it (FILTER_STATES[] / FILTER_SINCE /
+# FILTER_UNTIL), sets FILTER_CONSUMED to how many argv tokens it spans (1 or 2),
+# and returns 0. Otherwise returns 1. Aborts if a window flag lacks its argument.
+filter_consume() {
+  FILTER_CONSUMED=1
+  case "$1" in
+    --failed)    FILTER_STATES+=(failed) ;;
+    --completed) FILTER_STATES+=(completed) ;;
+    --running)   FILTER_STATES+=(running) ;;
+    --pending)   FILTER_STATES+=(pending) ;;
+    --cancelled) FILTER_STATES+=(cancelled) ;;
+    --timeout)   FILTER_STATES+=(timeout) ;;
+    --node-fail) FILTER_STATES+=(node_fail) ;;
+    --retryable) FILTER_STATES+=(retryable) ;;
+    --since=*)   FILTER_SINCE="${1#*=}" ;;
+    --until=*)   FILTER_UNTIL="${1#*=}" ;;
+    --since)     [ $# -ge 2 ] || { echo "error: --since requires an argument" >&2; exit 1; }
+                 FILTER_SINCE="$2"; FILTER_CONSUMED=2 ;;
+    --until)     [ $# -ge 2 ] || { echo "error: --until requires an argument" >&2; exit 1; }
+                 FILTER_UNTIL="$2"; FILTER_CONSUMED=2 ;;
+    *)           FILTER_CONSUMED=0; return 1 ;;
+  esac
+  return 0
+}
+
+# Join FILTER_STATES[] into a comma-separated filter string ("" if none set).
+filter_states_csv() {
+  [ "${#FILTER_STATES[@]}" -gt 0 ] || { echo ""; return; }
+  local IFS=,; echo "${FILTER_STATES[*]}"
+}
+
+# True if the job is an array (has _N task rows in sacct).
+is_array_job() {
+  sacct -j "$1" --format=JobID -n -P 2>/dev/null | grep -q "${1}_[0-9]"
 }
 
 # Get comma-separated task IDs matching a state filter.
@@ -86,8 +144,7 @@ sacct_summary() {
   eval "$sacct_out"
   if [ "$total" -gt 1 ]; then
     local real_pend
-    real_pend=$(squeue -j "$jobid" -h -t PD -r -o "%i" 2>/dev/null \
-      | grep -c "${jobid}_" || true)
+    real_pend=$(squeue_pending_count "$jobid")
     if [ "$real_pend" -gt "$pending" ]; then
       total=$((total - pending + real_pend))
       pending=$real_pend
@@ -130,8 +187,7 @@ batch_states() {
   local array_ids squeue_counts=""
   array_ids=$(awk '$6 > 1 {printf "%s,", $1}' <<< "$sacct_counts" | sed 's/,$//')
   if [ -n "$array_ids" ]; then
-    squeue_counts=$(squeue -j "$array_ids" -h -t PD -r -o "%i" 2>/dev/null \
-      | grep -oE '^[0-9]+' | sort | uniq -c | awk '{print $2, $1}')
+    squeue_counts=$(squeue_pending_counts_by_job "$array_ids")
   fi
 
   # Merge squeue corrections and emit compact state strings
@@ -165,7 +221,7 @@ sacct_summary_compact() {
   if [ "$total" -le 1 ]; then
     # Single job — just get the state
     local state
-    state=$(sacct -j "$jobid" -n --format='State' 2>/dev/null | head -1 | awk '{print $1}')
+    state=$(sacct_job_state "$jobid")
     echo "${state:-UNKNOWN}"
     return
   fi
@@ -186,4 +242,71 @@ sacct_summary_compact() {
     parts="${parts}$failed fail"
   fi
   echo "$parts / $total"
+}
+
+# First-row State of a job (the leading word; e.g. "COMPLETED").
+sacct_job_state() {
+  sacct -j "$1" -n --format='State' 2>/dev/null | head -1 | awk '{print $1}'
+}
+
+# First-row value of an arbitrary sacct field for a job.
+# Usage: sacct_job_field <jobid> <Field>   (e.g. Elapsed, NodeList, JobName)
+sacct_job_field() {
+  sacct -j "$1" --format="$2" -n -P 2>/dev/null | head -1
+}
+
+# Colorized per-task table for an array job, filtered by a state regex.
+# Usage: sacct_task_table <jobid> [state_regex] [sort:time|node]
+# Columns: JobID State ExitCode Elapsed NodeList. Emits nothing if no task matches.
+sacct_task_table() {
+  local jobid="$1" state_regex="${2:-.}" sort_by="${3:-}"
+  local rows
+  rows=$(sacct -j "$jobid" --format="JobID%20,State%12,ExitCode,Elapsed,NodeList%15" -n 2>/dev/null \
+    | grep -E "${jobid}_[0-9]+ " | grep -v '\.' | grep -E "$state_regex")
+  case "$sort_by" in
+    time) rows=$(echo "$rows" | sort -k4) ;;
+    node) rows=$(echo "$rows" | sort -k5) ;;
+  esac
+  [ -n "$rows" ] && echo "$rows" | colorize_states
+}
+
+# Your jobs in a submission window (for `list --since/--until`), raw '|'-rows.
+# Usage: sacct_user_window [since] [until]
+sacct_user_window() {
+  local args=(-u "$USER" -X \
+    --format='JobID%15,JobName%25,Partition%15,State%12,Elapsed,Start,NodeList%20' -n -P)
+  [ -n "$1" ] && args+=(-S "$1")
+  [ -n "$2" ] && args+=(-E "$2")
+  sacct "${args[@]}" 2>/dev/null
+}
+
+# First NodeList of a job (for resubmit's --node filter).
+sacct_job_nodelist() {
+  sacct -j "$1" --format=NodeList -n -P 2>/dev/null | head -1
+}
+
+# Per-task accounting rows for `status --acct` on an array job (raw, colorize at
+# the call site). Columns: JobID State ExitCode Elapsed MaxRSS NodeList.
+sacct_acct_rows() {
+  sacct -j "$1" --format="JobID%20,State%12,ExitCode,Elapsed,MaxRSS,NodeList%15" -n 2>/dev/null \
+    | grep -E "${1}_[0-9]+ " | grep -v '\.'
+}
+
+# Single-job accounting line for `status --acct` on a non-array job.
+sacct_acct_single() {
+  sacct -j "$1" --format="JobID%20,JobName%20,State%12,ExitCode,Elapsed,MaxRSS,NodeList%15"
+}
+
+# `.batch`-step efficiency rows for `status --eff` ('|'-separated):
+# JobID State Elapsed TotalCPU MaxRSS ReqMem AllocCPUS TimelimitRaw
+sacct_eff_rows() {
+  sacct -j "$1" --format=JobID%20,State%12,Elapsed,TotalCPU,MaxRSS,ReqMem,AllocCPUS,TimelimitRaw -n -P 2>/dev/null \
+    | grep '\.batch|'
+}
+
+# Single completed-job summary line for `status` default view ('|'-separated):
+# JobID JobName State Elapsed ExitCode Start End NodeList AllocCPUS ReqMem
+sacct_job_line() {
+  sacct -j "$1" --format=JobID%20,JobName%30,State%12,Elapsed,ExitCode,Start,End,NodeList%20,AllocCPUS,ReqMem -n -P 2>/dev/null \
+    | grep "^${1}|" | head -1
 }

@@ -32,31 +32,28 @@ ${YELLOW}Examples:${RESET}
 CANCEL_ALL=false
 CANCEL_NODE=""
 CANCEL_PARTITION=""
-SINCE=""
-UNTIL=""
-STATE_FILTERS=()
+FILTER_STATES=()
+FILTER_SINCE=""
+FILTER_UNTIL=""
 while [ $# -gt 0 ]; do
+  # Shared state/window flags. A state filter (--pending/--running) implies --all.
+  if filter_consume "$@"; then shift "$FILTER_CONSUMED"; continue; fi
   case "$1" in
     --all)        CANCEL_ALL=true; shift ;;
-    --pending)    STATE_FILTERS+=(pending); CANCEL_ALL=true; shift ;;
-    --running)    STATE_FILTERS+=(running); CANCEL_ALL=true; shift ;;
     --node=*)      CANCEL_NODE="${1#*=}"; shift ;;
     -n|--node)    [ $# -lt 2 ] && { echo "error: --node requires an argument" >&2; exit 1; }; CANCEL_NODE="$2"; shift 2 ;;
     -p|--partition) [ $# -lt 2 ] && { echo "error: --partition requires an argument" >&2; exit 1; }; CANCEL_PARTITION="$2"; shift 2 ;;
     --partition=*) CANCEL_PARTITION="${1#*=}"; shift ;;
-    --since=*)    SINCE="${1#*=}"; shift ;;
-    --since)      [ $# -lt 2 ] && { echo "error: --since requires an argument" >&2; exit 1; }; SINCE="$2"; shift 2 ;;
-    --until=*)    UNTIL="${1#*=}"; shift ;;
-    --until)      [ $# -lt 2 ] && { echo "error: --until requires an argument" >&2; exit 1; }; UNTIL="$2"; shift 2 ;;
     *) break ;;
   esac
 done
+[ "${#FILTER_STATES[@]}" -gt 0 ] && CANCEL_ALL=true
 
 # Resolve date bounds to ISO-8601 (for lexicographic compare with "created")
 SINCE_ISO=""
 UNTIL_ISO=""
-[ -n "$SINCE" ] && { SINCE_ISO=$(parse_datetime "$SINCE") || exit 1; }
-[ -n "$UNTIL" ] && { UNTIL_ISO=$(parse_datetime "$UNTIL") || exit 1; }
+[ -n "$FILTER_SINCE" ] && { SINCE_ISO=$(parse_datetime "$FILTER_SINCE") || exit 1; }
+[ -n "$FILTER_UNTIL" ] && { UNTIL_ISO=$(parse_datetime "$FILTER_UNTIL") || exit 1; }
 
 # --- Cancel all active project jobs ---
 if $CANCEL_ALL; then
@@ -67,15 +64,15 @@ if $CANCEL_ALL; then
 
   # Build current-state filter regex (from --pending/--running)
   state_regex=""
-  if [ "${#STATE_FILTERS[@]}" -gt 0 ]; then
-    state_regex=$(state_filter_regex "$(IFS=,; echo "${STATE_FILTERS[*]}")")
+  if [ "${#FILTER_STATES[@]}" -gt 0 ]; then
+    state_regex=$(state_filter_regex "$(filter_states_csv)")
   fi
 
   count=0
   # For state-filtered cancels, build the scancel --state flag once.
   scancel_state_upper=""
   if [ -n "$state_regex" ]; then
-    scancel_state_upper=$(echo "${STATE_FILTERS[0]}" | tr '[:lower:]' '[:upper:]')
+    scancel_state_upper=$(echo "${FILTER_STATES[0]}" | tr '[:lower:]' '[:upper:]')
   fi
 
   while IFS= read -r line; do
@@ -106,7 +103,7 @@ if $CANCEL_ALL; then
       # squeue exits non-zero when no tasks match; set -e would abort the loop,
       # and `| head -1` + pipefail + SIGPIPE has the same issue. `|| true`
       # swallows the non-match exit, and empty `$live` drives the continue.
-      live=$(squeue -j "$jid" -h -t "$scancel_state_upper" -o '%A' 2>/dev/null || true)
+      live=$(squeue_live_tasks "$jid" "$scancel_state_upper")
       [ -z "$live" ] && continue
       printf "${RED}Cancelling${RESET} %s tasks of job %s\n" "$scancel_state_upper" "$jid"
       scancel --state="$scancel_state_upper" "$jid" 2>/dev/null
@@ -140,7 +137,7 @@ fi
 
 # --- Cancel by node ---
 if [ -n "$CANCEL_NODE" ]; then
-  JOBS=$(squeue -u "$USER" -h -w "$CANCEL_NODE" -o "%i" 2>/dev/null)
+  JOBS=$(squeue_jobs_on_node "$CANCEL_NODE")
   if [ -z "$JOBS" ]; then
     printf "${YELLOW}No jobs on %s${RESET}\n" "$CANCEL_NODE"
     exit 0
@@ -159,7 +156,7 @@ fi
 
 # --- Cancel by partition ---
 if [ -n "$CANCEL_PARTITION" ]; then
-  JOBS=$(squeue -u "$USER" -h -p "$CANCEL_PARTITION" -o "%i" 2>/dev/null)
+  JOBS=$(squeue_jobs_on_partition "$CANCEL_PARTITION")
   if [ -z "$JOBS" ]; then
     printf "${YELLOW}No jobs on %s${RESET}\n" "$CANCEL_PARTITION"
     exit 0

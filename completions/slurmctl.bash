@@ -55,7 +55,7 @@ _slurmctl() {
       COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending --cancelled --timeout --since --until -v --verbose --sort --visual --graphical -j --job" -- "$cur"))
       ;;
     status)
-      COMPREPLY=($(compgen -W "--acct --eff --why --visual --graphical --task -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--acct --eff --why --failed --completed --running --pending --cancelled --timeout --node-fail --sort --visual --graphical --task -j --job" -- "$cur"))
       ;;
     resubmit)
       COMPREPLY=($(compgen -W "--failed --cancelled --timeout --node-fail --all --since --until -n --node -p --partition -j --job" -- "$cur"))
