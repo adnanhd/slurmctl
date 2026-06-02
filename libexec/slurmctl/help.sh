@@ -41,6 +41,10 @@ ${YELLOW}Job Status:${RESET}
     ${B}--eff${R}                   Resource efficiency (avg/max CPU, memory, GPU)
     ${B}--why${R}                   Why is this job pending?
 
+  ${GREEN}util${RESET} [${B}-j${R} JOBID]
+    Per-job GPU/CPU/memory/disk utilization (avg + peak).
+    GPU from slurmctl monitoring CSVs; CPU/mem/io from sacct. Works while running.
+
 ${YELLOW}Job Control:${RESET}
   ${GREEN}cancel${RESET} [${B}-j${R} JOBID] [${B}--all${R}] [${B}-n${R} NODE] [${B}-p${R} PARTITION]
     Cancel jobs. Without flags: cancel current/specified job.
@@ -54,6 +58,9 @@ ${YELLOW}Job Control:${RESET}
     ${B}--all${R}                   Resubmit all failed jobs from history
     ${B}-n${R}, ${B}--node${R} NODE         Filter to jobs that ran on NODE
     ${B}-p${R}, ${B}--partition${R} PART    Filter to jobs on PARTITION
+
+  ${GREEN}throttle${RESET} [${B}-j${R} JOBID] <N>
+    Set a running array job's max concurrent tasks (scontrol ArrayTaskThrottle).
 
 ${YELLOW}Output Viewing:${RESET}
   ${GREEN}tail${RESET} [${B}-j${R} JOBID] [${B}--no-out${R}] [${B}--no-err${R}] [tail args...]

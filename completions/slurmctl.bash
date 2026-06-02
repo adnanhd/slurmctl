@@ -13,7 +13,7 @@ _slurmctl() {
   local cur prev words cword
   _init_completion || return
 
-  local subcommands="submit list status resubmit cancel
+  local subcommands="submit list status util resubmit cancel throttle
     tail cat head less watch errors
     nodes health
     history update pop clear clean
