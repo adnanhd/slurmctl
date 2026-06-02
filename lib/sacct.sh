@@ -6,6 +6,18 @@
 #   sacct_summary <JOBID>          # prints: completed=N running=N pending=N failed=N total=N
 #   sacct_summary_compact <JOBID>  # prints: "12 done, 8 run / 72" or "COMPLETED"
 
+# Canonical set of terminal "failure" states: any state in which a task ended
+# unsuccessfully. Single source of truth so that the word "fail" means the same
+# thing in the --failed filter, the history compact line, and the summary count.
+# --timeout/--cancelled remain narrow sub-filters of this set.
+FAIL_STATE_REGEX='CANCELLED|FAILED|TIMEOUT|BOOT_FAIL|OUT_OF_MEMORY|NODE_FAIL|DEADLINE|PREEMPTED|REVOKED'
+
+# Subset of FAIL_STATE_REGEX worth automatically retrying: involuntary failures
+# where the work didn't finish through no deliberate choice of yours. Excludes
+# CANCELLED/PREEMPTED/REVOKED (typically intentional), so `resubmit` never
+# re-launches a task you cancelled on purpose. Used as the resubmit default.
+RETRYABLE_FAIL_STATE_REGEX='FAILED|TIMEOUT|OUT_OF_MEMORY|NODE_FAIL|BOOT_FAIL|DEADLINE'
+
 # Map a filter name to a State column regex.
 # Usage: state_filter_regex <filter>
 #   failed|completed|running|pending|cancelled|timeout|node_fail|all
@@ -15,7 +27,8 @@ state_filter_regex() {
   IFS=',' read -ra parts <<< "$filter"
   for part in "${parts[@]}"; do
     case "$part" in
-      failed)    r='FAILED' ;;
+      failed)    r="$FAIL_STATE_REGEX" ;;
+      retryable) r="$RETRYABLE_FAIL_STATE_REGEX" ;;
       completed) r='COMPLETED' ;;
       running)   r='RUNNING' ;;
       pending)   r='PENDING' ;;
@@ -53,14 +66,14 @@ sacct_summary() {
   local sacct_out squeue_pend
   sacct_out=$(sacct -j "$jobid" -n --format='JobID,State,ExitCode' 2>/dev/null \
     | grep -v '\.' \
-    | awk '
-      /./          { total++ }
-      /COMPLETED/  { if ($3 == "0:0") done++; else fail++ }
-      /FAILED/     { fail++ }
-      /TIMEOUT/    { fail++ }
-      /CANCELLED/  { fail++ }
-      /RUNNING/    { run++ }
-      /PENDING/    { pend++ }
+    | awk -v failre="^($FAIL_STATE_REGEX)" '
+      NF >= 2 {
+        total++
+        if      ($2 == "COMPLETED" && $3 == "0:0") done++
+        else if ($2 ~ failre)      fail++
+        else if ($2 == "RUNNING")  run++
+        else if ($2 == "PENDING")  pend++
+      }
       END {
         printf "completed=%d running=%d pending=%d failed=%d total=%d\n",
           done+0, run+0, pend+0, fail+0, total+0
@@ -96,14 +109,14 @@ batch_states() {
   local sacct_counts
   sacct_counts=$(sacct -j "$jids" --format="JobID,State,ExitCode" -n 2>/dev/null \
     | grep -v '\.' \
-    | awk '
+    | awk -v failre="^($FAIL_STATE_REGEX)" '
       NF >= 2 {
         jobid = $1; state = $2; exitcode = $3
         base = jobid; sub(/_[0-9]+$/, "", base)
         if (!(base in seen)) { last[base] = state; seen[base] = 1 }
         total[base]++
         if      (state == "COMPLETED" && exitcode == "0:0") done[base]++
-        else if (state ~ /^(CANCELLED|FAILED|TIMEOUT|BOOT_FAIL|OUT_OF_MEMORY|NODE_FAIL|DEADLINE|PREEMPTED|REVOKED)/) fail[base]++
+        else if (state ~ failre) fail[base]++
         else if (state == "RUNNING") run[base]++
         else if (state == "PENDING") pend[base]++
       }

@@ -18,7 +18,8 @@ ${YELLOW}Usage:${RESET}
 
 ${YELLOW}Options:${RESET}
   --summary               Count tasks/steps by state
-  --failed                Filter to FAILED tasks
+  --failed                Filter to failed tasks (any terminal-failure state:
+                          FAILED, TIMEOUT, CANCELLED, OOM, NODE_FAIL, ...)
   --completed             Filter to COMPLETED tasks
   --running               Filter to RUNNING tasks
   --pending               Filter to PENDING tasks

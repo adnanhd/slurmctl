@@ -8,7 +8,7 @@ ${YELLOW}Options:${RESET}
   -n, -N              Show last N entries (default: 10)
   --all               Show full history
   --oneline           Compact one-line format
-  --failed            Only FAILED jobs
+  --failed            Only failed jobs (any terminal-failure state)
   --completed         Only COMPLETED jobs
   --running           Only RUNNING jobs
   --pending           Only PENDING jobs

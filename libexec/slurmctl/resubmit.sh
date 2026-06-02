@@ -11,7 +11,9 @@ ${YELLOW}Usage:${RESET}
   slurmctl resubmit --all --since yesterday   Only jobs submitted since yesterday
 
 ${YELLOW}Options:${RESET}
-  --failed                Default: resubmit FAILED jobs
+  --failed                Default: resubmit involuntary failures
+                          (FAILED, TIMEOUT, OOM, NODE_FAIL, BOOT_FAIL, DEADLINE).
+                          Excludes CANCELLED/PREEMPTED/REVOKED unless requested.
   --cancelled             Also include CANCELLED jobs
   --timeout               Also include TIMEOUT jobs
   --node-fail             Also include NODE_FAIL jobs
@@ -39,7 +41,7 @@ STATE_FILTERS=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --all)         ALL=true; shift ;;
-    --failed)      STATE_FILTERS+=(failed); shift ;;
+    --failed)      STATE_FILTERS+=(retryable); shift ;;
     --cancelled)   STATE_FILTERS+=(cancelled); shift ;;
     --timeout)     STATE_FILTERS+=(timeout); shift ;;
     --node-fail)   STATE_FILTERS+=(node_fail); shift ;;
@@ -55,8 +57,10 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-# Default state filter is "failed" if none given
-[ "${#STATE_FILTERS[@]}" -eq 0 ] && STATE_FILTERS=(failed)
+# Default state filter is "retryable" (involuntary failures) if none given.
+# This deliberately excludes CANCELLED/PREEMPTED/REVOKED so a bare `resubmit`
+# never re-launches tasks you cancelled on purpose; use --cancelled to opt in.
+[ "${#STATE_FILTERS[@]}" -eq 0 ] && STATE_FILTERS=(retryable)
 STATE_REGEX=$(state_filter_regex "$(IFS=,; echo "${STATE_FILTERS[*]}")")
 
 SINCE_ISO=""
