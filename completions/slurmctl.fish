@@ -53,11 +53,16 @@ complete -c slurmctl -n '__fish_seen_subcommand_from list' -l since -d 'Only job
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l until -d 'Only jobs before DATETIME' -x
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l verbose -s v -d 'Detailed view'
 complete -c slurmctl -n '__fish_seen_subcommand_from list' -l sort -d 'Sort by time|node' -xa 'time node'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l visual -d 'TUI bar chart of states'
+complete -c slurmctl -n '__fish_seen_subcommand_from list' -l graphical -d 'TUI bar chart of states'
 
 # status
 complete -c slurmctl -n '__fish_seen_subcommand_from status' -l acct -d 'Accounting details (sacct)'
 complete -c slurmctl -n '__fish_seen_subcommand_from status' -l eff -d 'Resource efficiency'
 complete -c slurmctl -n '__fish_seen_subcommand_from status' -l why -d 'Why is job pending'
+complete -c slurmctl -n '__fish_seen_subcommand_from status' -l visual -d 'TUI GPU util line graph (with --eff)'
+complete -c slurmctl -n '__fish_seen_subcommand_from status' -l graphical -d 'TUI GPU util line graph (with --eff)'
+complete -c slurmctl -n '__fish_seen_subcommand_from status' -l task -d 'GPU-csv task id for --visual' -x
 
 # cancel
 complete -c slurmctl -n '__fish_seen_subcommand_from cancel' -l all -d 'Cancel all project jobs'

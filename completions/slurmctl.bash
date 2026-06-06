@@ -52,10 +52,10 @@ _slurmctl() {
       COMPREPLY+=($(compgen -W "$scripts" -- "$cur"))
       ;;
     list)
-      COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending --cancelled --timeout --since --until -v --verbose --sort -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--summary --failed --completed --running --pending --cancelled --timeout --since --until -v --verbose --sort --visual --graphical -j --job" -- "$cur"))
       ;;
     status)
-      COMPREPLY=($(compgen -W "--acct --eff --why -j --job" -- "$cur"))
+      COMPREPLY=($(compgen -W "--acct --eff --why --visual --graphical --task -j --job" -- "$cur"))
       ;;
     resubmit)
       COMPREPLY=($(compgen -W "--failed --cancelled --timeout --node-fail --all --since --until -n --node -p --partition -j --job" -- "$cur"))

@@ -32,6 +32,7 @@ ${YELLOW}Job Listing:${RESET}
     ${B}--pending${R}               Pending task IDs
     ${B}-v${R}, ${B}--verbose${R}           Detailed view with exit codes and nodes
     ${B}--sort${R} time|node        Sort order for detailed view
+    ${B}--visual${R}, ${B}--graphical${R}   TUI bar chart of job/task states
 
 ${YELLOW}Job Status:${RESET}
   ${GREEN}status${RESET} [${B}-j${R} JOBID] [${B}--acct${R}] [${B}--eff${R}] [${B}--why${R}]
@@ -39,6 +40,7 @@ ${YELLOW}Job Status:${RESET}
     (default)               Job state, runtime, resources (+ array summary)
     ${B}--acct${R}                  Accounting details from sacct
     ${B}--eff${R}                   Resource efficiency (avg/max CPU, memory, GPU)
+    ${B}--eff --visual${R}          + TUI line graph of GPU util %% over time (${B}--task${R} N)
     ${B}--why${R}                   Why is this job pending?
 
   ${GREEN}util${RESET} [${B}-j${R} JOBID]
