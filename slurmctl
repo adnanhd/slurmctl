@@ -12,6 +12,7 @@ export SLURMCTL_PROJECT_ROOT
 # Source common library
 source "$SLURMCTL_SRC_DIR/lib/common.sh"
 source "$SLURMCTL_SRC_DIR/lib/sacct.sh"
+source "$SLURMCTL_SRC_DIR/lib/graphic.sh"
 
 # Extract --job/-j from anywhere in argv; pass --help through to subcommands
 cmd=""

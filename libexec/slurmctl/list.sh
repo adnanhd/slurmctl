@@ -18,6 +18,7 @@ ${YELLOW}Usage:${RESET}
 
 ${YELLOW}Options:${RESET}
   --summary               Count tasks/steps by state
+  --visual, --graphical   Render as a TUI bar chart (job/task states)
   --failed                Filter to failed tasks (any terminal-failure state:
                           FAILED, TIMEOUT, CANCELLED, OOM, NODE_FAIL, ...)
   --completed             Filter to COMPLETED tasks
@@ -39,6 +40,7 @@ your jobs in the window (sacct-backed)." "$@"
 FILTERS=()
 VERBOSE=false
 SUMMARY=false
+VISUAL=false
 SORT_BY=""
 SINCE=""
 UNTIL=""
@@ -46,6 +48,7 @@ UNTIL=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --summary)    SUMMARY=true; shift ;;
+    --visual|--graphical) VISUAL=true; shift ;;
     --failed)     FILTERS+=(failed); shift ;;
     --completed)  FILTERS+=(completed); shift ;;
     --running)    FILTERS+=(running); shift ;;
@@ -98,6 +101,17 @@ fi
 
 # --- No filter: squeue listing ---
 if ! $SUMMARY && [ -z "$FILTER" ]; then
+  if $VISUAL; then
+    printf "${CYAN}Your jobs by state:${RESET}\n"
+    squeue -u "$USER" -h -o '%t' 2>/dev/null | sort | uniq -c | \
+      awk '{
+        c=$1; k=$2
+        name=(k=="R"?"running":k=="PD"?"pending":k=="CG"?"completing":k=="CD"?"completed":k)
+        col =(k=="R"?"yellow":k=="PD"?"blue":k=="CG"||k=="CD"?"green":"red")
+        print name, c, col
+      }' | bar_chart
+    exit 0
+  fi
   printf "${CYAN}Your Jobs:${RESET}\n"
   squeue -u "$USER" -o '%.20i %.12P %.40j %.8u %.2t %.10M %.6D %R' | \
     sed "1s/^/$(printf "${YELLOW}")/" | sed "1s/$/$(printf "${RESET}")/"
@@ -117,11 +131,21 @@ if $SUMMARY; then
   if _is_array "$JOBID"; then
     line=$(sacct_summary "$JOBID")
     eval "$line"
-    printf "${CYAN}Summary for %s:${RESET}\n" "$JOBID"
-    printf "  ${GREEN}Completed:${RESET} %d\n" "$completed"
-    printf "  ${YELLOW}Running:${RESET}   %d\n" "$running"
-    printf "  ${BLUE}Pending:${RESET}   %d\n" "$pending"
-    printf "  ${RED}Failed:${RESET}    %d\n" "$failed"
+    if $VISUAL; then
+      printf "${CYAN}Task states for %s${RESET} (total %d):\n" "$JOBID" "${total:-0}"
+      {
+        echo "completed ${completed:-0} green"
+        echo "running   ${running:-0} yellow"
+        echo "pending   ${pending:-0} blue"
+        echo "failed    ${failed:-0} red"
+      } | bar_chart
+    else
+      printf "${CYAN}Summary for %s:${RESET}\n" "$JOBID"
+      printf "  ${GREEN}Completed:${RESET} %d\n" "$completed"
+      printf "  ${YELLOW}Running:${RESET}   %d\n" "$running"
+      printf "  ${BLUE}Pending:${RESET}   %d\n" "$pending"
+      printf "  ${RED}Failed:${RESET}    %d\n" "$failed"
+    fi
   else
     # Single/wrap job: just show state
     state=$(sacct -j "$JOBID" --format=State -n -P 2>/dev/null | head -1)

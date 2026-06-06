@@ -11,6 +11,8 @@ ${YELLOW}Usage:${RESET}
 ${YELLOW}Options:${RESET}
   --acct                Show sacct accounting details
   --eff                 Show resource efficiency (avg/max CPU, memory, GPU)
+  --eff --visual        Add a TUI line graph of GPU util %% over time
+  --task N              GPU-csv task id for --visual (default 0)
   --why                 Show reason for pending state
 
 Works for array jobs, single jobs, and --wrap jobs." "$@"
@@ -18,11 +20,15 @@ Works for array jobs, single jobs, and --wrap jobs." "$@"
 EFF=false
 WHY=false
 ACCT=false
+VISUAL=false
+VTASK=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --eff)  EFF=true; shift ;;
     --why)  WHY=true; shift ;;
     --acct) ACCT=true; shift ;;
+    --visual|--graphical) VISUAL=true; shift ;;
+    --task) VTASK="$2"; shift 2 ;;
     *) break ;;
   esac
 done
@@ -154,6 +160,17 @@ if $EFF; then
     }' $gpu_summaries
   else
     printf "  ${DIM}GPU: no monitoring data (submit via slurmctl for GPU tracking)${RESET}\n"
+  fi
+
+  if $VISUAL; then
+    csv="${SLURMCTL_LOG_DIR}/${JOBID}_${VTASK}_gpu.csv"
+    if [ -f "$csv" ]; then
+      printf "\n${CYAN}GPU utilization %% over time — %s_%s${RESET}\n" "$JOBID" "$VTASK"
+      grep -v '^#' "$csv" | awk -F', ' 'NF>=3 { print $3 }' | \
+        line_graph --title "util %" --color green
+    else
+      printf "  ${DIM}--visual: no GPU csv for task %s (%s)${RESET}\n" "$VTASK" "$csv" >&2
+    fi
   fi
   exit 0
 fi
