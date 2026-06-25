@@ -15,7 +15,7 @@ _slurmctl() {
 
   local subcommands="submit list status util resubmit cancel throttle
     tail cat head less watch errors
-    nodes health
+    nodes health usage
     history update pop clear clean
     help"
 
@@ -80,6 +80,9 @@ _slurmctl() {
       ;;
     history)
       COMPREPLY=($(compgen -W "-n --all --oneline --script --failed --completed --running --pending --cancelled --timeout --node-fail --since --until" -- "$cur"))
+      ;;
+    usage)
+      COMPREPLY=($(compgen -W "-a --account --all --cluster --gpu --tres -t --start --end" -- "$cur"))
       ;;
     *)
       COMPREPLY=($(compgen -W "-j --job" -- "$cur"))

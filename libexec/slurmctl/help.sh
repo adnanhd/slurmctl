@@ -87,6 +87,16 @@ ${YELLOW}Cluster Info:${RESET}
       ${B}job${R}                   Your jobs grouped by node
     All modes support ${B}-v${R} for per-node detail within each group.
 
+  ${GREEN}usage${RESET} [${B}-a${R} ACCT] [${B}--all${R}] [${B}--gpu${R}] [${B}-t${R} UNIT] [${B}--start${R} DT] [${B}--end${R} DT]
+    Account/user CPU- or GPU-hour consumption from sreport.
+    (default)               Your account's usage by user (CPU hours, today)
+    ${B}-a${R}, ${B}--account${R} ACCT     Report a specific account
+    ${B}--all${R}, ${B}--cluster${R}        All accounts on the cluster
+    ${B}--gpu${R}                   GPU hours (--tres=gres/gpu) instead of CPU
+    ${B}--tres${R} TRES             Report an arbitrary TRES
+    ${B}-t${R} UNIT                 Time unit: hours (default), minutes, percent
+    ${B}--start${R}/${B}--end${R} DT         Window (sreport syntax; default: today..now)
+
 ${YELLOW}History:${RESET}
   ${GREEN}history${RESET} [${B}-n${R} N] [${B}--all${R}] [${B}--oneline${R}] [${B}--script${R}] [${B}--state${R} STATE]
     Show submission history (newest first).

@@ -23,6 +23,7 @@ complete -c slurmctl -n __fish_use_subcommand -a watch        -d 'Live tail of j
 complete -c slurmctl -n __fish_use_subcommand -a errors       -d 'Recent errors'
 complete -c slurmctl -n __fish_use_subcommand -a nodes        -d 'Cluster node status'
 complete -c slurmctl -n __fish_use_subcommand -a health       -d 'Version and cluster connectivity'
+complete -c slurmctl -n __fish_use_subcommand -a usage        -d 'Account/user CPU/GPU-hour usage (sreport)'
 complete -c slurmctl -n __fish_use_subcommand -a history      -d 'Show submission history'
 complete -c slurmctl -n __fish_use_subcommand -a update       -d 'Refresh job states from sacct'
 complete -c slurmctl -n __fish_use_subcommand -a pop          -d 'Archive job from active history'
@@ -100,6 +101,16 @@ complete -c slurmctl -n '__fish_seen_subcommand_from tail cat head less watch' -
 complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l partition -s p -d 'Filter by partition' -xa '(__slurmctl_partitions)'
 complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l verbose -s v -d 'Detailed view'
 complete -c slurmctl -n '__fish_seen_subcommand_from nodes' -l group-by -d 'Group mode' -xa 'gpu cpu mem job'
+
+# usage
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -l account -s a -d 'Report a specific account' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -l all -d 'All accounts on the cluster'
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -l cluster -d 'All accounts on the cluster'
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -l gpu -d 'GPU hours (--tres=gres/gpu)'
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -l tres -d 'Report an arbitrary TRES' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -s t -d 'Time unit' -xa 'hours minutes seconds percent'
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -l start -d 'Window start (sreport syntax)' -x
+complete -c slurmctl -n '__fish_seen_subcommand_from usage' -l end -d 'Window end (sreport syntax)' -x
 
 # history
 complete -c slurmctl -n '__fish_seen_subcommand_from history' -l all -d 'Include archived'
