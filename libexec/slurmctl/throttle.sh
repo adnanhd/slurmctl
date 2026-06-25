@@ -59,7 +59,7 @@ if [ "$after" = "$THROTTLE" ]; then
   printf "${GREEN}Throttle set${RESET} job %s ArrayTaskThrottle=%s\n" "$BASE_JOBID" "$after"
   # A non-zero scontrol exit despite a successful apply is a benign side effect
   # (e.g. time-limit re-validation on running tasks); surface it dimmed.
-  if [ "$rc" -ne 0 ] && [ -n "$err" ]; then
+  if [ "$rc" -ne 0 ] && [ -n "$err" ] && ! printf "%s" "$err" | grep -qi "time limit is invalid"; then
     printf "${DIM}  (scontrol also reported: %s)${RESET}\n" "$(echo "$err" | head -1)"
   fi
   exit 0
