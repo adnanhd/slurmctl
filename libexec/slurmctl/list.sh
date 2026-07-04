@@ -31,7 +31,7 @@ ${YELLOW}Options:${RESET}
   -v, --verbose           Detailed view with exit codes and nodes
   --sort time|node        Sort order for detailed view
 
-DATETIME accepts anything sacct -S accepts: 2026-04-14, yesterday, now-3days, 1h.
+DATETIME: date (2026-04-14), duration (1h, 3d), now-expr (now-3days), or yesterday.
 
 Without filters, shows your squeue. With filters and -j, shows task/step
 breakdown for the current job. With --since/--until and no -j, shows all
@@ -64,13 +64,16 @@ if [ -n "$FILTER_SINCE" ] || [ -n "$FILTER_UNTIL" ]; then
   if [ -z "${SLURMCTL_JOBID:-}" ]; then
     state_grep='.'
     [ -n "$FILTER" ] && state_grep=$(state_filter_regex "$FILTER")
+    since_arg=""; until_arg=""
+    [ -n "$FILTER_SINCE" ] && { since_arg=$(parse_datetime "$FILTER_SINCE" '%Y-%m-%dT%H:%M:%S') || exit 1; }
+    [ -n "$FILTER_UNTIL" ] && { until_arg=$(parse_datetime "$FILTER_UNTIL" '%Y-%m-%dT%H:%M:%S') || exit 1; }
 
     printf "${CYAN}Your jobs"
     [ -n "$FILTER_SINCE" ] && printf " since %s" "$FILTER_SINCE"
     [ -n "$FILTER_UNTIL" ] && printf " until %s" "$FILTER_UNTIL"
     printf ":${RESET}\n"
 
-    sacct_user_window "$FILTER_SINCE" "$FILTER_UNTIL" | \
+    sacct_user_window "$since_arg" "$until_arg" | \
       awk -F'|' -v re="$state_grep" '$4 ~ re {printf "%s  %-25s  %-15s  %-12s  %-10s  %-19s  %s\n", $1, $2, $3, $4, $5, $6, $7}' | \
       colorize_states
     exit 0

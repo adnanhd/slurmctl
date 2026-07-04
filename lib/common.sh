@@ -81,7 +81,7 @@ get_history_entry() {
 # understands: "2026-04-14", "yesterday", "1 hour ago", "now-3days" (→ 3 days ago).
 # Usage: parse_datetime <string>
 parse_datetime() {
-  local s="$1"
+  local s="$1" fmt="${2:-%Y-%m-%dT%H:%M:%S%:z}"
   # Normalize sacct-style "now-3days" / "1h" into something date(1) accepts
   if [[ "$s" =~ ^now-(.+)$ ]]; then
     s="${BASH_REMATCH[1]} ago"
@@ -94,7 +94,7 @@ parse_datetime() {
       d) s="$n days ago" ;;
     esac
   fi
-  date -d "$s" -Iseconds 2>/dev/null || {
+  date -d "$s" "+$fmt" 2>/dev/null || {
     printf "error: invalid datetime: %s\n" "$1" >&2
     return 1
   }
