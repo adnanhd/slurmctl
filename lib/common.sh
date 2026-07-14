@@ -70,8 +70,10 @@ mark_job_state() {
 
 # Get the history entry for a job ID
 # Usage: get_history_entry <jobid>
+# `|| true` so a no-match (grep rc 1, amplified by `set -o pipefail`) does not
+# abort callers that assign the result under `set -e` (e.g. resolve_job_output_files).
 get_history_entry() {
-  grep "\"job_id\":\"$1\"" "$HIST_FILE" 2>/dev/null | tail -1
+  grep "\"job_id\":\"$1\"" "$HIST_FILE" 2>/dev/null | tail -1 || true
 }
 
 # Parse a user datetime string into ISO-8601 for lexicographic comparison
